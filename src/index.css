@@ -1,0 +1,215 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --library-gold: #D4AF37;
+  --bg-dark: #0A0B0D;
+  --bg-light: #ffffff;
+  --text-dark: #F8F9FA;
+  --text-light: #0f172a;
+  --glass-bg-dark: rgba(15, 23, 42, 0.4);
+  --glass-bg-light: rgba(255, 255, 255, 0.6);
+  --border-dark: rgba(255, 255, 255, 0.1);
+  --border-light: rgba(0, 0, 0, 0.08);
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-library-gold: var(--library-gold);
+}
+
+@layer base {
+  body {
+    @apply font-sans antialiased transition-colors duration-500;
+    background-color: var(--bg-dark);
+    color: var(--text-dark);
+  }
+  
+  body.light {
+    background-color: var(--bg-light);
+    color: var(--text-light);
+  }
+}
+
+.animated-bg {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  z-index: 0;
+  transition: background 0.5s ease;
+}
+
+body.dark .animated-bg {
+  background: radial-gradient(circle at 50% 50%, #0a1128 0%, #050608 100%);
+}
+
+body.light .animated-bg {
+  background: 
+    radial-gradient(at 0% 0%, hsla(210,100%,95%,1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(225,100%,98%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(339,49%,95%,1) 0, transparent 50%), 
+    radial-gradient(at 50% 100%, hsla(210,100%,95%,1) 0, transparent 50%), 
+    radial-gradient(at 0% 100%, hsla(180,100%,95%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 100%, hsla(250,100%,95%,1) 0, transparent 50%);
+}
+
+.floating-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  z-index: -1;
+  pointer-events: none;
+  animation: pulse-glow 15s ease-in-out infinite;
+}
+
+body.dark .orb-1 {
+  width: 900px;
+  height: 900px;
+  background: radial-gradient(circle, rgba(29, 78, 216, 0.2) 0%, transparent 70%);
+  top: -300px;
+  right: -200px;
+}
+
+body.dark .orb-2 {
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 70%);
+  bottom: -200px;
+  left: -200px;
+  animation-delay: -5s;
+}
+
+body.light .orb-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+  top: -100px;
+  right: -100px;
+}
+
+body.light .orb-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+  bottom: -100px;
+  left: -100px;
+}
+
+.glass-panel {
+  @apply backdrop-blur-3xl border shadow-xl transition-all duration-300;
+  position: relative;
+}
+
+body.dark .glass-panel {
+  background-color: var(--glass-bg-dark);
+  border-color: var(--border-dark);
+}
+
+body.light .glass-panel {
+  background-color: var(--glass-bg-light);
+  border-color: var(--border-light);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+}
+
+.glass-input {
+  @apply rounded-[18px] px-6 py-4 focus:ring-4 focus:ring-library-gold/20 focus:border-library-gold outline-none transition-all font-medium;
+}
+
+body.dark .glass-input {
+  @apply bg-black/40 border-white/10 text-white placeholder:text-gray-600;
+}
+
+body.light .glass-input {
+  @apply bg-white border-black/5 text-slate-900 placeholder:text-slate-400 shadow-sm;
+}
+
+.metallic-btn {
+  @apply bg-library-gold hover:bg-[#eec451] text-black font-black px-8 py-4 rounded-[18px] transition-all active:scale-95 shadow-[0_0_20px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 uppercase tracking-widest text-sm cursor-pointer;
+}
+
+.secondary-btn {
+  @apply font-bold px-8 py-4 rounded-[18px] transition-all active:scale-95 border flex items-center justify-center gap-3 uppercase tracking-widest text-sm cursor-pointer;
+}
+
+body.dark .secondary-btn {
+  @apply bg-white/5 hover:bg-white/10 text-library-gold border-library-gold/20;
+}
+
+body.light .secondary-btn {
+  @apply bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-200;
+}
+
+.title-text {
+  @apply font-serif italic text-library-gold;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.scanline {
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(to bottom, transparent, rgba(212, 175, 55, 0.1), transparent);
+  animation: scanline 8s linear infinite;
+  z-index: 10;
+  pointer-events: none;
+}
+
+body.light .scanline {
+  opacity: 0.3;
+}
+
+.terminal-text {
+  @apply font-mono text-[10px] uppercase tracking-tighter leading-tight;
+}
+
+.animated-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+body.dark .animated-bg::before {
+  background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 40px 40px;
+}
+
+body.light .animated-bg::before {
+  background-image: radial-gradient(circle at 2px 2px, rgba(0, 0, 0, 0.03) 1px, transparent 0);
+  background-size: 60px 60px;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.05); }
+}
+
+/* Light mode specific text adjustments */
+body.light .text-white { @apply text-slate-900; }
+body.light .text-gray-400 { @apply text-slate-500; }
+body.light .text-gray-500 { @apply text-slate-400; }
+body.light .bg-white\/5 { @apply bg-black/5; }
+body.light .bg-white\/10 { @apply bg-black/10; }
+body.light .border-white\/5 { @apply border-black/5; }
+body.light .border-white\/10 { @apply border-black/10; }
+body.light .hover\:bg-white\/5:hover { @apply bg-black/5; }
+body.light .hover\:bg-white\/10:hover { @apply bg-black/10; }
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--library-gold);
+  border-radius: 10px;
+}
