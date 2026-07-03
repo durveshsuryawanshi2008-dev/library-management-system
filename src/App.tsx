@@ -9,6 +9,7 @@ import {
   CheckCircle2, 
   Library,
   ChevronRight,
+  ChevronLeft,
   Search,
   PlusCircle,
   FileText,
@@ -27,7 +28,19 @@ import {
   Settings,
   Bot,
   Bell,
-  BellOff
+  BellOff,
+  ArrowRight,
+  AlertTriangle,
+  Sparkles,
+  MonitorPlay,
+  Users,
+  Zap,
+  BadgeCheck,
+  Star,
+  Quote,
+  Mail,
+  Phone,
+  Menu
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -40,43 +53,60 @@ import {
   Tooltip, 
   ResponsiveContainer, 
   AreaChart,
-  Area
+  Area,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
 import { User, IssueRecord, Book, ChatMessage } from './types';
 import { formatDisplayDate, calculateDueDate } from './data';
 import { ALL_BOOKS } from './data/books';
+import { ToastViewport, type AppNotification, type ToastType } from './components/ToastViewport';
+import { readStoredValue, writeStoredValue } from './lib/storage';
+
+const getInitialTheme = (): 'dark' | 'light' => {
+  if (typeof window === 'undefined') return 'dark';
+  const stored = window.localStorage.getItem('durvesh_theme');
+  if (stored === 'dark' || stored === 'light') return stored;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [view, setView] = useState<'login' | 'dashboard'>('login');
-  const [records, setRecords] = useState<IssueRecord[]>(() => {
-    const saved = localStorage.getItem('durvesh_records');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [view, setView] = useState<'landing' | 'login' | 'dashboard'>('landing');
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [records, setRecords] = useState<IssueRecord[]>(() => readStoredValue<IssueRecord[]>('durvesh_records', []));
   const [isBooting, setIsBooting] = useState(false);
   const [bootLogs, setBootLogs] = useState<string[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    const saved = localStorage.getItem('durvesh_chats');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('durvesh_theme') as 'dark' | 'light') || 'dark';
-  });
+  const [messages, setMessages] = useState<ChatMessage[]>(() => readStoredValue<ChatMessage[]>('durvesh_chats', []));
+  const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    return localStorage.getItem('durvesh_notify_enabled') !== 'false';
+    return readStoredValue<'false' | 'true' | null>('durvesh_notify_enabled', 'true') !== 'false';
   });
   const [registryFilter, setRegistryFilter] = useState<'all' | 'pending' | 'return_pending'>('all');
-  const [notifications, setNotifications] = useState<{id: string, text: string, time: string}[]>(() => {
-    const saved = localStorage.getItem('durvesh_alerts');
-    return saved ? JSON.parse(saved) : [];
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    const saved = readStoredValue<unknown>('durvesh_alerts', []);
+    if (!Array.isArray(saved)) return [];
+
+    return saved.map((item: any) => ({
+      id: item.id || Math.random().toString(36).slice(2),
+      title: item.title || 'System Update',
+      message: item.message || item.text || '',
+      time: item.time || new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+      type: item.type || 'info'
+    }));
   });
   const [showSettings, setShowSettings] = useState(false);
 
   // Page-level state
-  const [activeTab, setActiveTab] = useState<'catalog' | 'registry' | 'chat' | 'terminal' | 'stats' | 'return_center' | 'ai_assistant'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'registry' | 'chat' | 'terminal' | 'stats' | 'return_center' | 'ai_assistant' | 'students'>('catalog');
 
   useEffect(() => {
-    document.body.className = theme;
+    document.documentElement.classList.remove('dark', 'light');
+    document.documentElement.classList.add(theme);
+    document.documentElement.style.colorScheme = theme;
+    document.body.classList.remove('dark', 'light');
+    document.body.classList.add(theme);
   }, [theme]);
 
   useEffect(() => {
@@ -119,24 +149,46 @@ export default function App() {
   }, [isBooting]);
 
   useEffect(() => {
-    localStorage.setItem('durvesh_records', JSON.stringify(records));
+    const timer = window.setTimeout(() => setIsHydrated(true), 180);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    writeStoredValue('durvesh_records', records);
   }, [records]);
 
   useEffect(() => {
-    localStorage.setItem('durvesh_chats', JSON.stringify(messages));
+    writeStoredValue('durvesh_chats', messages);
   }, [messages]);
 
   useEffect(() => {
-    localStorage.setItem('durvesh_theme', theme);
+    writeStoredValue('durvesh_theme', theme);
   }, [theme]);
 
   useEffect(() => {
-    localStorage.setItem('durvesh_notify_enabled', String(notificationsEnabled));
+    writeStoredValue('durvesh_notify_enabled', String(notificationsEnabled));
   }, [notificationsEnabled]);
 
   useEffect(() => {
-    localStorage.setItem('durvesh_alerts', JSON.stringify(notifications));
+    writeStoredValue('durvesh_alerts', notifications);
   }, [notifications]);
+
+  const pushNotification = (title: string, message: string, type: ToastType = 'info') => {
+    if (!notificationsEnabled) return;
+
+    const toast: AppNotification = {
+      id: Math.random().toString(36).slice(2),
+      title,
+      message,
+      time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+      type
+    };
+
+    setNotifications(prev => [toast, ...prev].slice(0, 6));
+    window.setTimeout(() => {
+      setNotifications(prev => prev.filter(item => item.id !== toast.id));
+    }, 3600);
+  };
 
   const handleSendMessage = (text: string) => {
     if (!user) return;
@@ -182,12 +234,14 @@ export default function App() {
     if (!notificationsEnabled || records.length === 0) return;
     
     const lastRecord = records[0];
-    const msg = {
+    const msg: AppNotification = {
       id: Math.random().toString(),
-      text: `Alert: ${lastRecord.bookTitle} is now ${lastRecord.status.toUpperCase()}`,
-      time: new Date().toLocaleTimeString()
+      title: 'System Update',
+      message: `${lastRecord.bookTitle} is now ${lastRecord.status.toUpperCase()}`,
+      time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+      type: lastRecord.status === 'returned' || lastRecord.status === 'accepted' ? 'success' : 'info'
     };
-    setNotifications(prev => [msg, ...prev].slice(0, 5));
+    setNotifications(prev => [msg, ...prev].slice(0, 6));
   }, [records, notificationsEnabled]);
 
   const handleLogout = () => {
@@ -200,7 +254,7 @@ export default function App() {
     
     // Wallet restriction
     if (user.role === 'student' && (user.walletBalance || 100) < 40) {
-      alert("System Block: Wallet balance must be at least ₹40 to issue new books.");
+      pushNotification('Warning', 'Wallet balance must be at least ₹40 to issue new books.', 'warning');
       return false;
     }
 
@@ -218,19 +272,23 @@ export default function App() {
     };
 
     setRecords([newRecord, ...records]);
+    pushNotification('Issue Successful', `${book.title} has been issued successfully.`, 'success');
     return true;
   };
 
   const handleAcceptRequest = (id: string) => {
     setRecords(records.map(r => r.id === id ? { ...r, status: 'accepted' } : r));
+    pushNotification('Issue Successful', 'The issue request was approved.', 'success');
   };
 
   const handleRejectRequest = (id: string) => {
     setRecords(records.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+    pushNotification('Warning', 'The issue request was rejected.', 'warning');
   };
 
   const handleReturnBook = (id: string) => {
     setRecords(records.map(r => r.id === id ? { ...r, status: 'return_pending', returnRequestedDate: new Date().toISOString() } : r));
+    pushNotification('Return Pending', 'Your return request has been submitted.', 'info');
   };
 
   const handleApproveReturn = (id: string) => {
@@ -247,6 +305,7 @@ export default function App() {
     }
 
     setRecords(records.map(r => r.id === id ? { ...r, status: 'returned', fineAmount: fine } : r));
+    pushNotification('Return Successful', `The book return was completed${fine > 0 ? ` with a fine of ₹${fine}` : ''}.`, 'success');
     
     // Deduct from student wallet
     if (fine > 0) {
@@ -258,6 +317,18 @@ export default function App() {
     }
   };
 
+  if (!isHydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-center text-white">
+        <div className="w-full max-w-md rounded-[32px] border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur-2xl">
+          <div className="mx-auto mb-6 h-14 w-14 animate-pulse rounded-2xl border border-library-gold/20 bg-library-gold/10" />
+          <h2 className="text-2xl font-semibold">Preparing your library workspace</h2>
+          <p className="mt-3 text-sm text-slate-300">Loading the dashboard, records, and preferences…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen relative overflow-hidden font-sans animated-bg">
       {/* Background Decor - Floating Orbs */}
@@ -265,54 +336,68 @@ export default function App() {
       <div className="floating-orb orb-2"></div>
       
       <div className="relative z-10 container mx-auto px-4 py-8 min-h-screen flex flex-col">
+        <ToastViewport notifications={notifications} theme={theme} />
         {/* Header */}
-        <header className="flex justify-between items-center mb-16 px-4">
+        <header className="mb-16 flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center shadow-2xl">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-2xl">
               <Library className="text-library-gold" size={32} />
             </div>
             <div>
-              <h1 className="text-3xl font-serif italic text-white font-bold tracking-tight">Durvesh</h1>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-white font-bold opacity-80">Library Management System</p>
+              <h1 className="text-3xl font-serif italic font-bold tracking-tight text-white">Durvesh</h1>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white opacity-80">Library Management System</p>
             </div>
           </div>
 
-          {user && (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-4 glass-panel py-2 px-6 rounded-2xl border-white/5">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className={`flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.25em] transition-all duration-300 ${theme === 'dark' ? 'bg-white/10 text-gray-100 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label="Toggle dark mode"
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
+
+            {user ? (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 glass-panel py-2 px-6 rounded-2xl border-white/5">
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-black text-white tracking-tight">{user.username}</p>
                   <p className="text-[9px] text-library-gold font-bold uppercase tracking-widest">{user.role}</p>
                 </div>
                 <div className="w-px h-6 bg-white/10"></div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                    className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all text-gray-400"
-                    title="Toggle Theme"
-                  >
-                    {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                  </button>
-                  <button 
-                    onClick={() => setShowSettings(!showSettings)}
-                    className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all text-gray-400 relative"
-                    title="System Settings"
-                  >
-                    <Settings size={18} />
-                    {notificationsEnabled && notifications.length > 0 && (
-                      <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setShowSettings(!showSettings)}
+                      className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all text-gray-400 relative"
+                      title="System Settings"
+                    >
+                      <Settings size={18} />
+                      {notificationsEnabled && notifications.length > 0 && (
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                      )}
+                    </button>
+                  </div>
                 </div>
+                <button 
+                  onClick={handleLogout} 
+                  className="p-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl transition-all active:scale-90 border border-red-500/20"
+                >
+                  <LogOut size={20} />
+                </button>
               </div>
-              <button 
-                onClick={handleLogout} 
-                className="p-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl transition-all active:scale-90 border border-red-500/20"
+            ) : (
+              <button
+                onClick={() => setView('login')}
+                className="px-5 py-3 rounded-2xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:bg-white/10 transition-all"
               >
-                <LogOut size={20} />
+                Sign In
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </header>
 
         {/* Settings Overlay */}
@@ -345,11 +430,11 @@ export default function App() {
 
                 <div className="flex items-center justify-between">
                    <div className="flex items-center gap-3">
-                     <Moon size={18} className="text-library-gold" />
-                     <span className="text-xs font-bold text-white uppercase tracking-wider">Force Dark Mode</span>
+                     {theme === 'dark' ? <Moon size={18} className="text-library-gold" /> : <Sun size={18} className="text-library-gold" />}
+                     <span className="text-xs font-bold text-white uppercase tracking-wider">Theme</span>
                    </div>
                    <button 
-                    onClick={() => setTheme('dark')}
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     className={`w-10 h-5 rounded-full transition-all relative ${theme === 'dark' ? 'bg-library-gold' : 'bg-white/10'}`}
                    >
                      <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${theme === 'dark' ? 'right-1' : 'left-1'}`}></div>
@@ -360,9 +445,12 @@ export default function App() {
                   <div className="pt-4 space-y-3">
                     <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Recent Activity</p>
                     {notifications.map(n => (
-                      <div key={n.id} className="bg-white/5 p-3 rounded-xl border border-white/5">
-                        <p className="text-[10px] text-white font-bold leading-tight">{n.text}</p>
-                        <p className="text-[8px] text-library-gold mt-1">{n.time}</p>
+                      <div key={n.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-library-gold">{n.title}</p>
+                          <span className="text-[8px] text-gray-500">{n.time}</span>
+                        </div>
+                        <p className="mt-2 text-[10px] leading-relaxed text-white">{n.message}</p>
                       </div>
                     ))}
                   </div>
@@ -380,6 +468,8 @@ export default function App() {
           <AnimatePresence mode="wait">
             {isBooting ? (
               <BootScreen logs={bootLogs} />
+            ) : view === 'landing' ? (
+              <LandingPage onEnter={() => setView('login')} />
             ) : view === 'login' ? (
               <LoginPage onLogin={handleLogin} />
             ) : (
@@ -408,6 +498,403 @@ export default function App() {
           </p>
         </footer>
       </div>
+    </div>
+  );
+}
+
+function LandingPage({ onEnter }: { onEnter: () => void }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
+
+  const features = [
+    {
+      icon: BookIcon,
+      title: 'Smart Catalog Browsing',
+      text: 'Explore books by department, category, author, and section with a fast, polished experience.'
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Secure Issuance Flow',
+      text: 'Issue requests, approvals, returns, and wallet-based restrictions all stay organized in one place.'
+    },
+    {
+      icon: Bot,
+      title: 'AI Librarian Support',
+      text: 'Ask for recommendations and receive instant suggestions based on your current catalog context.'
+    }
+  ];
+
+  const stats = [
+    { label: 'Books in catalog', value: '20k+' },
+    { label: 'Active users', value: '4.8k' },
+    { label: 'Avg. response', value: '< 2 min' },
+    { label: 'Satisfaction', value: '98%' }
+  ];
+
+  const testimonials = [
+    {
+      name: 'Aisha Rao',
+      role: 'Department Head',
+      quote: 'The interface feels modern, intuitive, and far more professional than a typical library portal.'
+    },
+    {
+      name: 'Rohit Verma',
+      role: 'Student Representative',
+      quote: 'Finding books and submitting return requests feels effortless and clear from the first click.'
+    },
+    {
+      name: 'Meera Kulkarni',
+      role: 'Admin Operations',
+      quote: 'The approval flow and dashboard make daily library operations much easier to manage.'
+    }
+  ];
+
+  const aboutPoints = [
+    'Designed for students, admins, and library staff in one unified experience.',
+    'Built around the existing catalog, issue, return, and messaging workflows.',
+    'Focused on clarity, speed, and a polished professional presentation.'
+  ];
+
+  const navItems = [
+    { id: 'home', label: 'Home' },
+    { id: 'features', label: 'Features' },
+    { id: 'stats', label: 'Stats' },
+    { id: 'preview', label: 'Preview' },
+    { id: 'about', label: 'About' },
+    { id: 'contact', label: 'Contact' }
+  ];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const offset = window.scrollY + 140;
+      const sections = navItems.map((item) => item.id);
+      let current = 'home';
+
+      for (let index = sections.length - 1; index >= 0; index -= 1) {
+        const section = document.getElementById(sections[index]);
+        if (section && offset >= section.offsetTop) {
+          current = sections[index];
+          break;
+        }
+      }
+
+      setActiveSection(current);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [navItems]);
+
+  return (
+    <div className="w-full max-w-7xl space-y-8">
+      <header className="sticky top-4 z-50">
+        <div className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-white/10 bg-slate-950/70 px-4 py-3 shadow-2xl shadow-black/20 backdrop-blur-2xl sm:px-6 lg:px-8">
+          <a href="#home" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-library-gold/30 bg-library-gold/10 text-library-gold">
+              <Library size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.25em] text-white">Durvesh</p>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Library System</p>
+            </div>
+          </a>
+
+          <nav className="hidden items-center gap-2 lg:flex">
+            {navItems.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                onClick={() => setIsMenuOpen(false)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-all ${activeSection === item.id ? 'bg-library-gold/15 text-library-gold shadow-[0_0_20px_rgba(212,175,55,0.15)]' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <button onClick={onEnter} className="hidden rounded-full border border-library-gold/30 bg-library-gold/10 px-4 py-2 text-sm font-semibold text-library-gold transition-all hover:bg-library-gold/20 sm:inline-flex">
+              Enter Library
+            </button>
+            <button
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition-all hover:bg-white/10 lg:hidden"
+              aria-label="Toggle navigation menu"
+            >
+              {isMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          </div>
+        </div>
+
+        {isMenuOpen && (
+          <div className="mx-auto mt-3 max-w-7xl rounded-[24px] border border-white/10 bg-slate-950/90 p-4 shadow-2xl shadow-black/20 backdrop-blur-2xl lg:hidden">
+            <div className="flex flex-col gap-2">
+              {navItems.map((item) => (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${activeSection === item.id ? 'bg-library-gold/15 text-library-gold' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
+                >
+                  {item.label}
+                </a>
+              ))}
+              <button onClick={() => { setIsMenuOpen(false); onEnter(); }} className="mt-2 rounded-2xl border border-library-gold/30 bg-library-gold/10 px-4 py-3 text-left text-sm font-semibold text-library-gold">
+                Enter Library
+              </button>
+            </div>
+          </div>
+        )}
+      </header>
+
+      <motion.section
+        id="home"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative overflow-hidden glass-panel rounded-[40px] p-8 sm:p-10 lg:p-14"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-library-gold/20 via-slate-950/70 to-indigo-950/80"></div>
+        <div className="relative z-10 grid gap-10 lg:grid-cols-[1.1fr_0.9fr] items-center">
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-library-gold/20 bg-library-gold/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-library-gold">
+              <Sparkles size={14} />
+              Modern academic operations
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-serif italic text-white font-bold leading-tight">
+                Elevate your library with a refined digital experience.
+              </h2>
+              <p className="max-w-2xl text-lg text-gray-300 leading-relaxed">
+                Streamline catalog browsing, issue approvals, return requests, and student support through a polished ecosystem designed for everyday campus use.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button onClick={onEnter} className="metallic-btn w-full sm:w-auto">
+                Enter Library
+                <ArrowRight size={18} />
+              </button>
+              <a href="#preview" className="secondary-btn w-full sm:w-auto">
+                View Preview
+              </a>
+            </div>
+            <div className="flex flex-wrap gap-6 text-sm text-gray-400">
+              <div className="flex items-center gap-2">
+                <BadgeCheck size={16} className="text-library-gold" />
+                Secure access
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap size={16} className="text-library-gold" />
+                Fast workflows
+              </div>
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-library-gold" />
+                Student ready
+              </div>
+            </div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="rounded-[32px] border border-white/10 bg-slate-950/70 p-6 shadow-2xl"
+          >
+            <div className="rounded-[24px] border border-library-gold/20 bg-gradient-to-br from-library-gold/15 to-slate-900 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Live dashboard</p>
+                  <p className="text-xl font-black text-white">Operations overview</p>
+                </div>
+                <div className="rounded-full border border-green-400/20 bg-green-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-green-400">
+                  Online
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-white/5 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Today’s circulation</p>
+                  <p className="mt-2 text-3xl font-serif italic text-library-gold">124 requests</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Pending approvals</p>
+                    <p className="mt-2 text-2xl font-black text-white">18</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Returns today</p>
+                    <p className="mt-2 text-2xl font-black text-white">9</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </motion.section>
+
+      <section id="features" className="grid gap-6 md:grid-cols-3">
+        {features.map((feature, index) => {
+          const Icon = feature.icon;
+          return (
+            <motion.div
+              key={feature.title}
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.4, delay: index * 0.08 }}
+              className="glass-panel rounded-[32px] p-6 border-white/5"
+            >
+              <div className="mb-4 inline-flex rounded-2xl border border-library-gold/20 bg-library-gold/10 p-3 text-library-gold">
+                <Icon size={20} />
+              </div>
+              <h3 className="text-lg font-black text-white">{feature.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-gray-400">{feature.text}</p>
+            </motion.div>
+          );
+        })}
+      </section>
+
+      <section id="stats" className="glass-panel rounded-[40px] p-8 sm:p-10">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] items-start">
+          <div className="space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-library-gold">Performance snapshot</p>
+            <h3 className="text-3xl font-serif italic text-white font-bold">Trusted by modern library teams.</h3>
+            <p className="text-gray-400 leading-relaxed">
+              Every workflow is designed to feel fast, clear, and professional while keeping the familiar login and dashboard experience intact.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.label} className="rounded-[24px] border border-white/10 bg-white/5 p-4 text-center">
+                <p className="text-2xl font-black text-white">{stat.value}</p>
+                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="preview" className="grid gap-6 lg:grid-cols-2">
+        <div className="glass-panel rounded-[36px] p-6">
+          <div className="mb-4 flex items-center gap-2 text-library-gold">
+            <MonitorPlay size={18} />
+            <p className="text-[10px] font-black uppercase tracking-[0.3em]">Preview placeholder</p>
+          </div>
+          <div className="flex h-56 items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 text-center text-gray-400">
+            <div>
+              <p className="text-lg font-black text-white">Catalog experience</p>
+              <p className="mt-2 text-sm">Book discovery and smart filters preview</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-panel rounded-[36px] p-6">
+          <div className="mb-4 flex items-center gap-2 text-library-gold">
+            <MonitorPlay size={18} />
+            <p className="text-[10px] font-black uppercase tracking-[0.3em]">Preview placeholder</p>
+          </div>
+          <div className="flex h-56 items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-gradient-to-br from-slate-900 to-indigo-950 text-center text-gray-400">
+            <div>
+              <p className="text-lg font-black text-white">Admin operations</p>
+              <p className="mt-2 text-sm">Issue approvals and return workflows preview</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="testimonials" className="grid gap-6 lg:grid-cols-3">
+        {testimonials.map((item, index) => (
+          <motion.div
+            key={item.name}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.4, delay: index * 0.08 }}
+            className="glass-panel rounded-[32px] p-6"
+          >
+            <div className="mb-4 flex items-center gap-1 text-library-gold">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} size={14} fill="currentColor" />
+              ))}
+            </div>
+            <div className="mb-4 flex items-start gap-3">
+              <div className="rounded-full bg-library-gold/10 p-2 text-library-gold">
+                <Quote size={16} />
+              </div>
+              <p className="text-sm leading-relaxed text-gray-300">“{item.quote}”</p>
+            </div>
+            <div>
+              <p className="font-black text-white">{item.name}</p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500">{item.role}</p>
+            </div>
+          </motion.div>
+        ))}
+      </section>
+
+      <section id="about" className="glass-panel rounded-[40px] p-8 sm:p-10">
+        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] items-center">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-library-gold">About the project</p>
+            <h3 className="mt-3 text-3xl font-serif italic text-white font-bold">A polished library experience built to feel premium and practical.</h3>
+            <p className="mt-4 text-gray-400 leading-relaxed">
+              This system combines a modern landing experience with the existing catalog, issue, return, and communication features that already power the application.
+            </p>
+          </div>
+          <div className="rounded-[32px] border border-white/10 bg-slate-950/60 p-6">
+            <ul className="space-y-4">
+              {aboutPoints.map((point) => (
+                <li key={point} className="flex items-start gap-3 text-sm text-gray-300">
+                  <div className="mt-0.5 rounded-full bg-library-gold/10 p-1 text-library-gold">
+                    <ShieldCheck size={14} />
+                  </div>
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" className="glass-panel rounded-[40px] p-8 sm:p-10">
+        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] items-center">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-library-gold">Contact</p>
+            <h3 className="mt-3 text-3xl font-serif italic text-white font-bold">Let’s connect about your library workflow.</h3>
+            <p className="mt-4 text-gray-400 leading-relaxed">
+              Whether you want to explore the current experience or discuss future improvements, the contact section is ready for your next step.
+            </p>
+          </div>
+          <div className="space-y-4 rounded-[32px] border border-white/10 bg-slate-950/60 p-6">
+            <a href="mailto:durvesh@example.com" className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 transition-all hover:border-library-gold/30">
+              <Mail size={18} className="text-library-gold" />
+              <span className="text-sm text-white">durvesh@example.com</span>
+            </a>
+            <a href="tel:+919999999999" className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 transition-all hover:border-library-gold/30">
+              <Phone size={18} className="text-library-gold" />
+              <span className="text-sm text-white">+91 99999 99999</span>
+            </a>
+            <button onClick={onEnter} className="metallic-btn w-full">
+              Open Library Portal
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <footer className="rounded-[32px] border border-white/10 bg-slate-950/50 px-8 py-8 text-center text-sm text-gray-400">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-black text-white">Durvesh Library System</p>
+            <p className="mt-1 text-xs uppercase tracking-[0.3em] text-gray-500">Professional • Responsive • Secure</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-4 text-xs uppercase tracking-[0.25em]">
+            <a href="#features" className="hover:text-library-gold transition-colors">Features</a>
+            <a href="#preview" className="hover:text-library-gold transition-colors">Preview</a>
+            <a href="#about" className="hover:text-library-gold transition-colors">About</a>
+            <a href="#contact" className="hover:text-library-gold transition-colors">Contact</a>
+            <button onClick={onEnter} className="hover:text-library-gold transition-colors">Sign In</button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -516,101 +1003,408 @@ function AdminStatsDashboard({
 }) {
   const stats = useMemo(() => {
     const today = new Date().toDateString();
+    const issued = records.filter(r => r.status === 'accepted' || r.status === 'returned');
+    const returned = records.filter(r => r.status === 'returned');
+    const activeUsers = new Set(records.filter(r => r.status === 'accepted' || r.status === 'return_pending').map(r => r.studentPrn)).size;
+    const students = new Set(records.map(r => r.studentPrn)).size;
+    const overdue = records.filter(r => {
+      if (r.status !== 'accepted' && r.status !== 'return_pending') return false;
+      const dueDate = new Date(r.dueDate);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      return dueDate < todayStart;
+    }).length;
+
     return {
-      issuedToday: records.filter(r => new Date(r.issueDate).toDateString() === today && (r.status === 'accepted' || r.status === 'returned')).length,
-      returnedToday: records.filter(r => r.status === 'returned' && new Date().toDateString() === today).length,
+      totalBooks: ALL_BOOKS.length,
+      issuedBooks: issued.length,
+      returnedBooks: returned.length,
+      students,
+      activeUsers,
+      overdueBooks: overdue,
       pendingIssues: records.filter(r => r.status === 'pending').length,
       pendingReturns: records.filter(r => r.status === 'return_pending').length,
-      activeUsers: new Set(records.filter(r => r.status === 'accepted' || r.status === 'return_pending').map(r => r.studentPrn)).size
+      issuedToday: records.filter(r => new Date(r.issueDate).toDateString() === today && (r.status === 'accepted' || r.status === 'returned')).length,
+      returnedToday: records.filter(r => r.status === 'returned' && new Date().toDateString() === today).length,
     };
   }, [records]);
 
-  const chartData = [
-    { name: 'Mon', issues: 14, returns: 10 },
-    { name: 'Tue', issues: 21, returns: 15 },
-    { name: 'Wed', issues: 18, returns: 20 },
-    { name: 'Thu', issues: 25, returns: 18 },
-    { name: 'Fri', issues: 32, returns: 24 },
-    { name: 'Sat', issues: 12, returns: 8 },
-    { name: 'Sun', issues: 10, returns: 5 },
+  const monthlyData = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const counts = monthNames.map((name) => ({ name, issued: 0 }));
+
+    records.forEach((record) => {
+      const issueDate = new Date(record.issueDate);
+      const monthIndex = issueDate.getMonth();
+      if (record.status === 'accepted' || record.status === 'returned') {
+        counts[monthIndex].issued += 1;
+      }
+    });
+
+    return counts.slice(0, 6);
+  }, [records]);
+
+  const activityData = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, index) => {
+      const day = new Date(now);
+      day.setDate(now.getDate() - (5 - index));
+      const label = day.toLocaleDateString('en', { weekday: 'short' });
+      const count = records.filter((record) => new Date(record.issueDate).toDateString() === day.toDateString()).length;
+      return { name: label, activity: count };
+    });
+  }, [records]);
+
+  const bookBorrowData = useMemo(() => {
+    const counts = ALL_BOOKS.map((book) => {
+      const borrowCount = records.filter((record) => record.bookId === book.id && (record.status === 'accepted' || record.status === 'returned')).length;
+      return { id: book.id, title: book.title, category: book.category, count: borrowCount };
+    });
+    return counts.sort((a, b) => b.count - a.count);
+  }, [records]);
+
+  const mostBorrowedBooks = useMemo(() => bookBorrowData.filter((item) => item.count > 0).slice(0, 5), [bookBorrowData]);
+  const leastBorrowedBooks = useMemo(() => [...bookBorrowData].filter((item) => item.count === 0).slice(0, 5), [bookBorrowData]);
+
+  const categoryData = useMemo(() => {
+    const counts = records.reduce((acc, record) => {
+      if (record.status !== 'accepted' && record.status !== 'returned') return acc;
+      const book = ALL_BOOKS.find((item) => item.id === record.bookId);
+      if (!book) return acc;
+      const key = book.category || 'General';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+  }, [records]);
+
+  const fineCollection = useMemo(() => {
+    const total = records.reduce((sum, record) => sum + (record.fineAmount || 0), 0);
+    return total;
+  }, [records]);
+
+  const fineTrendData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - index));
+      const label = date.toLocaleDateString('en', { weekday: 'short' });
+      const amount = records
+        .filter((record) => record.status === 'returned' && new Date(record.issueDate).toDateString() === date.toDateString())
+        .reduce((sum, record) => sum + (record.fineAmount || 0), 0);
+      return { name: label, fine: amount };
+    });
+    return last7Days;
+  }, [records]);
+
+  const studentBorrowData = useMemo(() => {
+    const counts = records.reduce((acc, record) => {
+      if (record.status !== 'accepted' && record.status !== 'returned') return acc;
+      acc[record.studentPrn] = (acc[record.studentPrn] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(counts)
+      .map(([prn, count]) => ({ prn, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [records]);
+
+  const statCards = [
+    { label: 'Total Books', value: stats.totalBooks, icon: Library, color: 'text-library-gold', filter: 'all' as const },
+    { label: 'Issued Books', value: stats.issuedBooks, icon: BookIcon, color: 'text-blue-500', filter: 'all' as const },
+    { label: 'Returned Books', value: stats.returnedBooks, icon: CheckCircle2, color: 'text-green-500', filter: 'all' as const },
+    { label: 'Students', value: stats.students, icon: UserIcon, color: 'text-purple-500', filter: 'all' as const },
+    { label: 'Active Members', value: stats.activeUsers, icon: ShieldCheck, color: 'text-cyan-500', filter: 'all' as const },
+    { label: 'Overdue Books', value: stats.overdueBooks, icon: Clock, color: 'text-rose-500', filter: 'all' as const },
   ];
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6">
-        {[
-          { label: 'Books Issued', value: stats.issuedToday, icon: BookIcon, color: 'text-blue-500', filter: 'all' as const },
-          { label: 'Returns Today', value: stats.returnedToday, icon: CheckCircle2, color: 'text-green-500', filter: 'all' as const },
-          { label: 'Active Learners', value: stats.activeUsers, icon: UserIcon, color: 'text-purple-500', filter: 'all' as const },
-          { label: 'Issue Requests', value: stats.pendingIssues, icon: Clock, color: 'text-amber-500', filter: 'pending' as const },
-          { label: 'Return Waitlist', value: stats.pendingReturns, icon: Library, color: 'text-rose-500', filter: 'return_pending' as const },
-        ].map((stat, i) => (
-          <motion.div 
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 p-8 shadow-2xl shadow-black/20"
+      >
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-library-gold">Operations command center</p>
+            <h2 className="text-3xl font-serif italic text-white font-bold">A cleaner, smarter view of your library performance.</h2>
+            <p className="text-sm leading-relaxed text-gray-400">
+              Monitor circulation trends, student engagement, and return health from one polished workspace designed for modern SaaS-style administration.
+            </p>
+          </div>
+          <div className="rounded-full border border-library-gold/20 bg-library-gold/10 px-4 py-2 text-sm font-semibold text-library-gold">
+            {stats.issuedToday} issues today • {stats.returnedToday} returns today
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {statCards.map((stat, index) => (
+          <motion.div
+            key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            key={stat.label} 
+            transition={{ delay: index * 0.06 }}
             onClick={() => onNavigate('registry', stat.filter)}
-            className="glass-panel p-6 rounded-[32px] border-white/5 cursor-pointer hover:border-library-gold transition-all"
+            className="group glass-panel cursor-pointer rounded-[32px] border-white/5 p-6 transition-all hover:-translate-y-1 hover:border-library-gold/30"
           >
-            <div className={`p-3 w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-4 ${stat.color}`}>
-              <stat.icon size={24} />
+            <div className="mb-5 flex items-center justify-between">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 ${stat.color}`}>
+                <stat.icon size={22} />
+              </div>
+              <div className="rounded-full bg-library-gold/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-library-gold">
+                Live
+              </div>
             </div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</p>
-            <p className="text-3xl font-serif italic text-white font-bold mt-1">{stat.value}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">{stat.label}</p>
+            <p className="mt-3 text-3xl font-serif italic font-bold text-white">{stat.value}</p>
+            <p className="mt-3 text-sm text-gray-500">Tap to review related records in the registry.</p>
           </motion.div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="glass-panel p-8 rounded-[40px] border-white/5">
-          <div className="flex justify-between items-center mb-8">
-             <h3 className="text-xl font-bold text-white">Issue Velocity</h3>
-             <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Weekly Metrics</p>
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+          className="glass-panel rounded-[40px] border-white/5 p-8"
+        >
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-white">Monthly books issued</h3>
+              <p className="mt-1 text-sm text-gray-500">A clear view of issue momentum over the last half-year.</p>
+            </div>
+            <div className="rounded-full bg-library-gold/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-library-gold">
+              Trend
+            </div>
           </div>
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
+              <AreaChart data={monthlyData}>
                 <defs>
-                  <linearGradient id="colorIssues" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
+                  <linearGradient id="colorIssued" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#D4AF37" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#666', fontSize: 10}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#666', fontSize: 10}} />
-                <Tooltip 
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#7c8aa2', fontSize: 11 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#7c8aa2', fontSize: 11 }} />
+                <Tooltip
                   contentStyle={{ backgroundColor: '#0a101f', borderRadius: '16px', border: '1px solid #ffffff10', color: '#fff' }}
                   itemStyle={{ fontSize: '12px' }}
                 />
-                <Area type="monotone" dataKey="issues" stroke="#D4AF37" fillOpacity={1} fill="url(#colorIssues)" strokeWidth={3} />
+                <Area type="monotone" dataKey="issued" stroke="#D4AF37" fillOpacity={1} fill="url(#colorIssued)" strokeWidth={3} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="glass-panel p-8 rounded-[40px] border-white/5">
-           <div className="flex justify-between items-center mb-8">
-             <h3 className="text-xl font-bold text-white">Return Volume</h3>
-             <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Weekly Distribution</p>
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+          className="glass-panel rounded-[40px] border-white/5 p-8"
+        >
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-white">Category distribution</h3>
+              <p className="mt-1 text-sm text-gray-500">Understand the spread of the catalog at a glance.</p>
+            </div>
+            <div className="rounded-full bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-blue-400">
+              Catalog
+            </div>
           </div>
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#666', fontSize: 10}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#666', fontSize: 10}} />
-                <Tooltip 
-                  cursor={{fill: '#ffffff05'}}
-                  contentStyle={{ backgroundColor: '#0a101f', borderRadius: '16px', border: '1px solid #ffffff10' }}
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`${entry.name}-${index}`} fill={['#D4AF37', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'][index % 6]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#0a101f', borderRadius: '16px', border: '1px solid #ffffff10', color: '#fff' }}
                 />
-                <Bar dataKey="returns" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={20} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-4 space-y-2">
+            {categoryData.map((item, index) => (
+              <div key={item.name} className="flex items-center justify-between rounded-2xl bg-white/5 px-3 py-2 text-sm text-gray-300">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ['#D4AF37', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'][index % 6] }} />
+                  {item.name}
+                </div>
+                <span className="font-semibold text-white">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.24 }}
+        className="glass-panel rounded-[40px] border-white/5 p-8"
+      >
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-white">Daily activity & analytics insights</h3>
+            <p className="mt-1 text-sm text-gray-500">A rolling view of circulation activity paired with borrowing behavior and fee collection.</p>
+          </div>
+          <div className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-emerald-400">
+            Activity
+          </div>
+        </div>
+        <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={activityData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#7c8aa2', fontSize: 11 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#7c8aa2', fontSize: 11 }} />
+                <Tooltip
+                  cursor={{ fill: '#ffffff05' }}
+                  contentStyle={{ backgroundColor: '#0a101f', borderRadius: '16px', border: '1px solid #ffffff10', color: '#fff' }}
+                />
+                <Bar dataKey="activity" fill="#3b82f6" radius={[8, 8, 0, 0]} barSize={24} />
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <div className="space-y-4">
+            <div className="rounded-[28px] border border-library-gold/20 bg-library-gold/10 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-library-gold">Fine collection</p>
+              <p className="mt-2 text-3xl font-semibold text-white">₹{fineCollection}</p>
+              <p className="mt-2 text-sm text-gray-400">Collected from late returns and overdue activity.</p>
+            </div>
+            <div className="rounded-[28px] border border-white/10 bg-white/5 p-4">
+              <p className="mb-3 text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Students with maximum borrowings</p>
+              <div className="space-y-2">
+                {studentBorrowData.map((student, index) => (
+                  <div key={student.prn} className="flex items-center justify-between rounded-2xl bg-slate-950/60 px-3 py-2 text-sm">
+                    <div>
+                      <p className="font-semibold text-white">{student.prn}</p>
+                      <p className="text-xs text-gray-500">#{index + 1} active borrower</p>
+                    </div>
+                    <div className="rounded-full bg-library-gold/10 px-2.5 py-1 text-[10px] font-semibold text-library-gold">
+                      {student.count} books
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
+      </motion.div>
+
+      <div className="grid gap-8 lg:grid-cols-2">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28 }}
+          className="glass-panel rounded-[40px] border-white/5 p-8"
+        >
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-white">Most borrowed books</h3>
+              <p className="mt-1 text-sm text-gray-500">Quickly spot the most requested titles.</p>
+            </div>
+            <div className="rounded-full bg-library-gold/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-library-gold">
+              Popular
+            </div>
+          </div>
+          <div className="space-y-3">
+            {mostBorrowedBooks.map((item) => (
+              <div key={item.id} className="flex items-center justify-between rounded-[24px] border border-white/10 bg-white/5 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{item.title}</p>
+                  <p className="text-xs text-gray-500">{item.category}</p>
+                </div>
+                <div className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold text-emerald-400">
+                  {item.count} borrows
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.32 }}
+          className="glass-panel rounded-[40px] border-white/5 p-8"
+        >
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-white">Least borrowed books</h3>
+              <p className="mt-1 text-sm text-gray-500">Surface underused titles and revisit inventory pacing.</p>
+            </div>
+            <div className="rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-amber-400">
+              Inventory
+            </div>
+          </div>
+          <div className="space-y-3">
+            {leastBorrowedBooks.map((item) => (
+              <div key={item.id} className="flex items-center justify-between rounded-[24px] border border-white/10 bg-white/5 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{item.title}</p>
+                  <p className="text-xs text-gray-500">{item.category}</p>
+                </div>
+                <div className="rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-semibold text-amber-400">
+                  {item.count} borrows
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.36 }}
+        className="glass-panel rounded-[40px] border-white/5 p-8"
+      >
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-white">Fine collection trend</h3>
+            <p className="mt-1 text-sm text-gray-500">Monitor overdue penalties over the last seven days.</p>
+          </div>
+          <div className="rounded-full bg-rose-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-rose-400">
+            Revenue
+          </div>
+        </div>
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={fineTrendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#7c8aa2', fontSize: 11 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#7c8aa2', fontSize: 11 }} />
+              <Tooltip
+                cursor={{ fill: '#ffffff05' }}
+                contentStyle={{ backgroundColor: '#0a101f', borderRadius: '16px', border: '1px solid #ffffff10', color: '#fff' }}
+              />
+              <Bar dataKey="fine" fill="#ef4444" radius={[8, 8, 0, 0]} barSize={24} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -738,9 +1532,9 @@ function LoginPage({ onLogin }: { onLogin: (u: string, p: string) => boolean }) 
       transition={{ type: "spring", damping: 20 }}
       className="w-full max-w-lg"
     >
-      <div className="glass-panel p-12 rounded-[40px] relative">
-        <div className="mb-12">
-          <h2 className="text-5xl font-serif italic mb-4 text-white">Durvesh Library</h2>
+      <div className="glass-panel relative rounded-[40px] p-8 sm:p-12">
+        <div className="mb-10 sm:mb-12">
+          <h2 className="mb-4 text-3xl font-serif italic text-white sm:text-5xl">Durvesh Library</h2>
           <p className="text-library-gold font-bold text-lg uppercase tracking-widest">
             Library Authentication Portal
           </p>
@@ -756,10 +1550,12 @@ function LoginPage({ onLogin }: { onLogin: (u: string, p: string) => boolean }) 
               <div className="relative group">
                 <input 
                   type="text"
+                  id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter Username"
                   className="glass-input w-full pr-16 text-lg font-bold"
+                  autoComplete="username"
                   required
                 />
                 <UserIcon className="absolute right-5 top-1/2 -translate-y-1/2 text-library-gold z-10" size={20} />
@@ -774,10 +1570,12 @@ function LoginPage({ onLogin }: { onLogin: (u: string, p: string) => boolean }) 
               <div className="relative group">
                 <input 
                   type="password"
+                  id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="glass-input w-full pr-16 text-lg font-bold"
+                  autoComplete="current-password"
                   required
                 />
                 <ShieldCheck className="absolute right-5 top-1/2 -translate-y-1/2 text-library-gold z-10" size={20} />
@@ -815,6 +1613,207 @@ function LoginPage({ onLogin }: { onLogin: (u: string, p: string) => boolean }) 
   );
 }
 
+function StudentManagementModule({ records }: { records: IssueRecord[] }) {
+  const [search, setSearch] = useState('');
+  const [deptFilter, setDeptFilter] = useState('All');
+  const [yearFilter, setYearFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Clear'>('All');
+
+  const students = useMemo(() => {
+    const departments = ['Computer Science', 'Mechanical', 'Electronics', 'Civil', 'Information Technology'];
+    const years = ['FY', 'SY', 'TY'];
+    const uniquePrns = Array.from(new Set(records.map((record) => record.studentPrn)));
+
+    return uniquePrns.map((prn, index) => {
+      const studentRecords = records.filter((record) => record.studentPrn === prn);
+      const latest = studentRecords[0];
+      const department = departments[index % departments.length];
+      const year = years[index % years.length];
+      const rollNumber = 1000 + index + 1;
+      const phone = `+91 98${(100000000 + index * 12345).toString().slice(1, 9)}`;
+      const email = `${(latest?.studentName || `student${index + 1}`).toLowerCase().replace(/\s+/g, '.')}@college.edu`;
+      const currentBooks = studentRecords.filter((record) => record.status === 'accepted' || record.status === 'return_pending');
+      const borrowHistory = studentRecords.length;
+      const fineAmount = studentRecords.reduce((sum, record) => sum + (record.fineAmount || 0), 0);
+      const status = currentBooks.length > 0 ? 'Active' : 'Clear';
+
+      return {
+        id: prn,
+        name: latest?.studentName || `Student ${index + 1}`,
+        prn,
+        department,
+        year,
+        rollNumber,
+        phone,
+        email,
+        currentBooks,
+        borrowHistory,
+        fineAmount,
+        status,
+      };
+    });
+  }, [records]);
+
+  const filteredStudents = useMemo(() => {
+    return students.filter((student) => {
+      const matchesSearch = [student.name, student.prn, student.department, student.year, student.rollNumber.toString()].some((value) =>
+        value.toString().toLowerCase().includes(search.toLowerCase())
+      );
+      const matchesDept = deptFilter === 'All' || student.department === deptFilter;
+      const matchesYear = yearFilter === 'All' || student.year === yearFilter;
+      const matchesStatus = statusFilter === 'All' || student.status === statusFilter;
+      return matchesSearch && matchesDept && matchesYear && matchesStatus;
+    });
+  }, [students, search, deptFilter, yearFilter, statusFilter]);
+
+  const getAvatar = (name: string, color: string) => {
+    const initials = name.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+        <rect width="160" height="160" rx="32" fill="${color}" />
+        <circle cx="80" cy="64" r="28" fill="rgba(255,255,255,0.25)" />
+        <path d="M40 128c8-24 24-34 40-34s32 10 40 34" fill="rgba(255,255,255,0.2)" />
+        <text x="80" y="148" text-anchor="middle" font-family="Inter, Arial" font-size="26" font-weight="700" fill="white">${initials}</text>
+      </svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 p-8 shadow-2xl shadow-black/20">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-library-gold">Student management</p>
+            <h2 className="text-3xl font-serif italic text-white font-bold">A focused view of scholar profiles, activity, and dues.</h2>
+            <p className="text-sm leading-relaxed text-gray-400">
+              Keep student records organized with profile details, current holds, borrow history, and fine visibility in a responsive workspace.
+            </p>
+          </div>
+          <div className="rounded-full border border-library-gold/20 bg-library-gold/10 px-4 py-2 text-sm font-semibold text-library-gold">
+            {students.length} active student profiles
+          </div>
+        </div>
+      </div>
+
+      <div className="glass-panel rounded-[36px] border-white/5 p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:max-w-xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search name, PRN, roll number..."
+              className="glass-input w-full pl-12 text-sm"
+            />
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} className="glass-input text-sm">
+              <option value="All">All departments</option>
+              <option value="Computer Science">Computer Science</option>
+              <option value="Mechanical">Mechanical</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Civil">Civil</option>
+              <option value="Information Technology">Information Technology</option>
+            </select>
+            <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className="glass-input text-sm">
+              <option value="All">All years</option>
+              <option value="FY">FY</option>
+              <option value="SY">SY</option>
+              <option value="TY">TY</option>
+            </select>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'All' | 'Active' | 'Clear')} className="glass-input text-sm">
+              <option value="All">All status</option>
+              <option value="Active">Active</option>
+              <option value="Clear">Clear</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {filteredStudents.length === 0 ? (
+        <div className="glass-panel rounded-[36px] border-white/5 p-12 text-center text-gray-500">
+          <UserIcon size={48} className="mx-auto mb-4 text-library-gold" />
+          <p className="text-lg font-semibold text-white">No student profiles matched this query.</p>
+        </div>
+      ) : (
+        <div className="grid gap-6 xl:grid-cols-2">
+          {filteredStudents.map((student, index) => (
+            <motion.div
+              key={student.id}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="glass-panel rounded-[36px] border-white/5 p-6"
+            >
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+                <img src={getAvatar(student.name, ['#D4AF37', '#3b82f6', '#8b5cf6', '#10b981'][index % 4])} alt={`${student.name} avatar`} className="h-24 w-24 rounded-[28px] border border-white/10 object-cover shadow-lg" />
+                <div className="flex-1 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-xl font-semibold text-white">{student.name}</h3>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">PRN {student.prn}</p>
+                    </div>
+                    <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] ${student.status === 'Active' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400' : 'border-gray-500/20 bg-gray-500/10 text-gray-400'}`}>
+                      {student.status}
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Department</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{student.department}</p>
+                    </div>
+                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Year</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{student.year}</p>
+                    </div>
+                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Roll number</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{student.rollNumber}</p>
+                    </div>
+                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Fine amount</p>
+                      <p className="mt-1 text-sm font-semibold text-rose-400">₹{student.fineAmount}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 rounded-[24px] border border-white/10 bg-slate-950/50 p-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                      <Phone size={14} className="text-library-gold" />
+                      {student.phone}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                      <Mail size={14} className="text-library-gold" />
+                      {student.email}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                      <div className="flex items-center gap-2 text-library-gold">
+                        <BookIcon size={16} />
+                        <p className="text-[10px] font-black uppercase tracking-[0.25em]">Borrow history</p>
+                      </div>
+                      <p className="mt-2 text-2xl font-semibold text-white">{student.borrowHistory}</p>
+                    </div>
+                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                      <div className="flex items-center gap-2 text-library-gold">
+                        <ShieldCheck size={16} />
+                        <p className="text-[10px] font-black uppercase tracking-[0.25em]">Current books</p>
+                      </div>
+                      <p className="mt-2 text-2xl font-semibold text-white">{student.currentBooks.length}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Dashboard({ 
   user, 
   records, 
@@ -838,8 +1837,8 @@ function Dashboard({
   onAccept: (id: string) => void,
   onReject: (id: string) => void,
   onReturn: (id: string) => void,
-  activeTab: 'catalog' | 'registry' | 'chat' | 'terminal' | 'stats' | 'return_center' | 'ai_assistant',
-  setActiveTab: (t: 'catalog' | 'registry' | 'chat' | 'terminal' | 'stats' | 'return_center' | 'ai_assistant') => void,
+  activeTab: 'catalog' | 'registry' | 'chat' | 'terminal' | 'stats' | 'return_center' | 'ai_assistant' | 'students',
+  setActiveTab: (t: 'catalog' | 'registry' | 'chat' | 'terminal' | 'stats' | 'return_center' | 'ai_assistant' | 'students') => void,
   onApproveReturn: (id: string) => void,
   setRegistryFilter: (f: 'all' | 'pending' | 'return_pending') => void,
   registryFilter: 'all' | 'pending' | 'return_pending'
@@ -848,7 +1847,13 @@ function Dashboard({
   const [directCode, setDirectCode] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [deptFilter, setDeptFilter] = useState('All');
-  const [displayCount, setDisplayCount] = useState(40);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'low' | 'out'>('all');
+  const [sortBy, setSortBy] = useState<'title' | 'author' | 'department' | 'category' | 'copies'>('title');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
+  const [catalogBooks, setCatalogBooks] = useState<Book[]>(ALL_BOOKS);
+  const [selectedBookIds, setSelectedBookIds] = useState<string[]>([]);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<IssueRecord | null>(null);
   const [success, setSuccess] = useState(false);
@@ -878,31 +1883,110 @@ function Dashboard({
   };
 
   const filteredBooks = useMemo(() => {
-    let list = ALL_BOOKS;
+    let list = catalogBooks;
     if (deptFilter !== 'All') {
       list = list.filter(b => b.department === deptFilter);
     }
     if (categoryFilter !== 'All') {
       list = list.filter(b => b.category === categoryFilter);
     }
+    if (statusFilter !== 'all') {
+      list = list.filter((book) => {
+        if (statusFilter === 'available') return book.copies > 2;
+        if (statusFilter === 'low') return book.copies > 0 && book.copies <= 2;
+        return book.copies === 0;
+      });
+    }
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter(b => 
-        b.title.toLowerCase().includes(s) || 
+        b.title.toLowerCase().includes(s) ||
         b.id.toLowerCase().includes(s) ||
-        b.author.toLowerCase().includes(s)
+        b.code.toLowerCase().includes(s) ||
+        b.author.toLowerCase().includes(s) ||
+        b.department.toLowerCase().includes(s) ||
+        b.category.toLowerCase().includes(s) ||
+        b.section.toLowerCase().includes(s)
       );
     }
     return list;
-  }, [search, categoryFilter, deptFilter]);
+  }, [catalogBooks, search, categoryFilter, deptFilter, statusFilter]);
 
-  const displayedBooks = useMemo(() => {
-    return filteredBooks.slice(0, displayCount);
-  }, [filteredBooks, displayCount]);
+  const sortedBooks = useMemo(() => {
+    const next = [...filteredBooks];
+    next.sort((a, b) => {
+      const modifier = sortOrder === 'asc' ? 1 : -1;
+      const left = a[sortBy];
+      const right = b[sortBy];
+      if (typeof left === 'number' && typeof right === 'number') {
+        return (left - right) * modifier;
+      }
+      return String(left).localeCompare(String(right)) * modifier;
+    });
+    return next;
+  }, [filteredBooks, sortBy, sortOrder]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedBooks.length / pageSize));
+  const paginatedBooks = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedBooks.slice(start, start + pageSize);
+  }, [sortedBooks, page, pageSize]);
 
   useEffect(() => {
-    setDisplayCount(40);
-  }, [search, categoryFilter, deptFilter]);
+    setPage(1);
+    setSelectedBookIds([]);
+  }, [search, categoryFilter, deptFilter, statusFilter, pageSize, sortBy, sortOrder]);
+
+  const getBookCover = (book: Book) => {
+    const palette = ['#D4AF37', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
+    const color = palette[book.id.length % palette.length];
+    const initials = book.title.split(' ').slice(0, 2).map(word => word[0] || '').join('').toUpperCase();
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
+        <rect width="240" height="320" rx="28" fill="#0f172a"/>
+        <rect x="18" y="18" width="204" height="284" rx="22" fill="${color}" opacity="0.18"/>
+        <rect x="32" y="42" width="176" height="110" rx="18" fill="${color}" opacity="0.28"/>
+        <rect x="42" y="166" width="156" height="14" rx="7" fill="#ffffff" opacity="0.16"/>
+        <rect x="42" y="192" width="120" height="10" rx="5" fill="#ffffff" opacity="0.14"/>
+        <circle cx="180" cy="242" r="36" fill="#ffffff" opacity="0.12"/>
+        <text x="120" y="255" text-anchor="middle" font-family="Inter, Arial" font-size="50" font-weight="700" fill="#ffffff">${initials}</text>
+        <text x="120" y="286" text-anchor="middle" font-family="Inter, Arial" font-size="14" fill="#d1d5db">${book.department}</text>
+      </svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  };
+
+  const getBookStatus = (book: Book) => {
+    if (book.copies === 0) {
+      return { label: 'Out of stock', badge: 'border-red-500/20 bg-red-500/10 text-red-400', dot: 'bg-red-500' };
+    }
+    if (book.copies <= 2) {
+      return { label: 'Low stock', badge: 'border-amber-500/20 bg-amber-500/10 text-amber-400', dot: 'bg-amber-500' };
+    }
+    return { label: 'Available', badge: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400', dot: 'bg-emerald-500' };
+  };
+
+  const toggleBookSelection = (id: string) => {
+    setSelectedBookIds((prev) => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedBookIds.length === 0) return;
+    setCatalogBooks((prev) => prev.filter((book) => !selectedBookIds.includes(book.id)));
+    setSelectedBookIds([]);
+  };
+
+  const handleBulkExport = () => {
+    const exportBooks = selectedBookIds.length > 0 ? catalogBooks.filter((book) => selectedBookIds.includes(book.id)) : filteredBooks;
+    const rows = exportBooks.map((book) => [book.id, book.code, book.title, book.author, book.department, book.category, book.section, book.copies, getBookStatus(book).label].join(','));
+    const csv = ['id,code,title,author,department,category,section,copies,status', ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'library-books.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleDirectIssue = (e: FormEvent) => {
     e.preventDefault();
@@ -1006,6 +2090,7 @@ function Dashboard({
       <div className="flex gap-4 mb-10 overflow-x-auto pb-2 px-1">
         {[
           { id: 'stats', label: 'Admin Hub', icon: ShieldCheck, show: user.role === 'admin' },
+          { id: 'students', label: 'Student Mgmt', icon: UserIcon, show: user.role === 'admin' },
           { id: 'ai_assistant', label: 'AI Librarian', icon: Bot, show: user.role === 'student' },
           { id: 'catalog', label: 'Book Catalog', icon: BookIcon, show: true },
           { id: 'terminal', label: 'Issue Books', icon: Library, show: user.role === 'student' },
@@ -1082,17 +2167,58 @@ function Dashboard({
 
               <div className="space-y-4">
                 <h4 className="text-[11px] font-black uppercase tracking-widest text-library-gold flex items-center gap-2 px-1">
-                   <Filter size={14} /> Search Database
+                   <Filter size={14} /> Advanced Search
                 </h4>
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                   <input 
                     type="text" 
-                    placeholder="Search titles, authors..." 
+                    placeholder="Search title, code, author, section..." 
                     className="glass-input w-full pl-12 text-sm"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[9px] uppercase tracking-[0.25em] text-gray-500">Availability</label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as 'all' | 'available' | 'low' | 'out')}
+                    className="glass-input w-full text-sm"
+                  >
+                    <option value="all">All books</option>
+                    <option value="available">Available</option>
+                    <option value="low">Low stock</option>
+                    <option value="out">Out of stock</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[9px] uppercase tracking-[0.25em] text-gray-500">Sort by</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'title' | 'author' | 'department' | 'category' | 'copies')}
+                    className="glass-input w-full text-sm"
+                  >
+                    <option value="title">Title</option>
+                    <option value="author">Author</option>
+                    <option value="department">Department</option>
+                    <option value="category">Category</option>
+                    <option value="copies">Copies</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[9px] uppercase tracking-[0.25em] text-gray-500">Order</label>
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                    className="glass-input w-full text-sm"
+                  >
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                  </select>
                 </div>
               </div>
             </motion.div>
@@ -1191,15 +2317,20 @@ function Dashboard({
                 exit={{ opacity: 0, y: -20 }}
                 className="glass-panel p-8 rounded-[40px] relative min-h-[600px]"
               >
-                <div className="flex justify-between items-end mb-10 px-2">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between mb-10 px-2">
                   <div>
                     <h2 className="font-serif italic text-4xl text-white font-bold">Library Shell</h2>
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-2">
                       Browsing {filteredBooks.length.toLocaleString()} Active Manuscripts • {deptFilter} / {categoryFilter}
                     </p>
                   </div>
-                  <div className="bg-library-gold/10 px-4 py-2 rounded-full border border-library-gold/20">
-                     <span className="text-[10px] text-library-gold font-black uppercase tracking-widest text-center">System Secure</span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-gray-400">
+                      {sortedBooks.length} results
+                    </div>
+                    <div className="bg-library-gold/10 px-4 py-2 rounded-full border border-library-gold/20">
+                      <span className="text-[10px] text-library-gold font-black uppercase tracking-widest text-center">System Secure</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1223,49 +2354,165 @@ function Dashboard({
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {displayedBooks.map((book) => (
-                    <motion.div 
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      key={book.id} 
-                      className="group p-6 rounded-[32px] bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-library-gold/20 transition-all cursor-pointer relative overflow-hidden"
-                      onClick={() => setSelectedBook(book)}
+                <div className="mb-6 flex flex-col gap-3 rounded-[30px] border border-white/10 bg-slate-950/50 p-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => setSelectedBookIds(paginatedBooks.map((book) => book.id))}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-gray-300"
                     >
-                      <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-4">
-                          <span className="text-[9px] font-black bg-library-gold text-black px-2 py-0.5 rounded uppercase tracking-tighter">{book.id}</span>
-                          <span className="text-[9px] text-gray-600 font-mono scale-90">{book.section}</span>
-                        </div>
-                        <h3 className="text-white font-bold group-hover:text-library-gold transition-colors line-clamp-1 mb-1">{book.title}</h3>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{book.author}</p>
-                        
-                        <div className="flex items-center justify-between mt-6">
-                          <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest opacity-60">Status: In Stock</span>
-                          </div>
-                          <span className="text-[10px] text-library-gold font-black uppercase tracking-wider underline underline-offset-4 opacity-0 group-hover:opacity-100 transition-opacity">Full Specs</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {filteredBooks.length > displayCount && (
-                  <div className="mt-12 flex justify-center">
-                    <button 
-                      onClick={() => setDisplayCount(prev => prev + 40)}
-                      className="secondary-btn !rounded-full !px-12"
+                      Select visible
+                    </button>
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={selectedBookIds.length === 0}
+                      className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                       Load More Records
+                      <span className="flex items-center gap-2"><Trash2 size={12} /> Bulk delete</span>
+                    </button>
+                    <button
+                      onClick={handleBulkExport}
+                      className="rounded-full border border-library-gold/20 bg-library-gold/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-library-gold"
+                    >
+                      <span className="flex items-center gap-2"><Download size={12} /> Bulk export</span>
                     </button>
                   </div>
-                )}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as 'title' | 'author' | 'department' | 'category' | 'copies')}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-300 outline-none"
+                    >
+                      <option value="title">Sort: Title</option>
+                      <option value="author">Sort: Author</option>
+                      <option value="department">Sort: Department</option>
+                      <option value="category">Sort: Category</option>
+                      <option value="copies">Sort: Copies</option>
+                    </select>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => setPageSize(Number(e.target.value))}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-300 outline-none"
+                    >
+                      <option value={6}>6 per page</option>
+                      <option value={8}>8 per page</option>
+                      <option value={10}>10 per page</option>
+                      <option value={12}>12 per page</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/40">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-left">
+                      <thead className="bg-white/5 text-[10px] uppercase tracking-[0.3em] text-gray-400">
+                        <tr>
+                          <th className="px-4 py-4">
+                            <input
+                              type="checkbox"
+                              checked={paginatedBooks.length > 0 && paginatedBooks.every((book) => selectedBookIds.includes(book.id))}
+                              onChange={() => {
+                                const ids = paginatedBooks.map((book) => book.id);
+                                setSelectedBookIds((prev) => prev.length === ids.length && ids.every((id) => prev.includes(id)) ? [] : ids);
+                              }}
+                              className="h-4 w-4 rounded border-white/10 bg-transparent"
+                            />
+                          </th>
+                          <th className="px-4 py-4">Cover</th>
+                          <th className="px-4 py-4">Title</th>
+                          <th className="px-4 py-4">Category</th>
+                          <th className="px-4 py-4">Department</th>
+                          <th className="px-4 py-4">Status</th>
+                          <th className="px-4 py-4">Copies</th>
+                          <th className="px-4 py-4">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedBooks.map((book) => {
+                          const status = getBookStatus(book);
+                          const selected = selectedBookIds.includes(book.id);
+                          return (
+                            <tr key={book.id} className="border-t border-white/10 bg-white/[0.01] hover:bg-white/[0.05]">
+                              <td className="px-4 py-4">
+                                <input
+                                  type="checkbox"
+                                  checked={selected}
+                                  onChange={() => toggleBookSelection(book.id)}
+                                  className="h-4 w-4 rounded border-white/10 bg-transparent"
+                                />
+                              </td>
+                              <td className="px-4 py-4">
+                                <img
+                                  src={getBookCover(book)}
+                                  alt={`${book.title} cover`}
+                                  className="h-16 w-12 rounded-xl object-cover shadow-lg"
+                                />
+                              </td>
+                              <td className="px-4 py-4">
+                                <button onClick={() => setSelectedBook(book)} className="text-left">
+                                  <p className="font-semibold text-white hover:text-library-gold">{book.title}</p>
+                                  <p className="mt-1 text-xs text-gray-500">{book.author}</p>
+                                  <p className="mt-1 text-[10px] uppercase tracking-[0.25em] text-gray-600">{book.code}</p>
+                                </button>
+                              </td>
+                              <td className="px-4 py-4">
+                                <span className="rounded-full border border-library-gold/20 bg-library-gold/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-library-gold">
+                                  {book.category}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 text-sm text-gray-400">{book.department}</td>
+                              <td className="px-4 py-4">
+                                <div className="flex flex-col gap-2">
+                                  <span className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] ${status.badge}`}>
+                                    <span className={`h-2 w-2 rounded-full ${status.dot}`} />
+                                    {status.label}
+                                  </span>
+                                  <span className="text-xs text-gray-500">{book.section}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 text-sm font-semibold text-white">{book.copies}</td>
+                              <td className="px-4 py-4">
+                                <button
+                                  onClick={() => setSelectedBook(book)}
+                                  className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-gray-300 transition-all hover:border-library-gold/20 hover:text-library-gold"
+                                >
+                                  Issue
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-col gap-4 rounded-[28px] border border-white/10 bg-white/[0.02] px-4 py-4 md:flex-row md:items-center md:justify-between">
+                  <p className="text-sm text-gray-500">
+                    Showing {Math.min((page - 1) * pageSize + 1, sortedBooks.length)}-{Math.min(page * pageSize, sortedBooks.length)} of {sortedBooks.length} books
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                      disabled={page === 1}
+                      className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <ChevronLeft size={14} /> Prev
+                    </button>
+                    <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-300">
+                      Page {page} / {totalPages}
+                    </div>
+                    <button
+                      onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                      disabled={page === totalPages}
+                      className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Next <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
 
                 {filteredBooks.length === 0 && (
-                  <div className="h-64 flex flex-col items-center justify-center opacity-30">
+                  <div className="mt-8 h-64 flex flex-col items-center justify-center opacity-30">
                     <BookIcon size={48} className="mb-4" />
                     <p className="text-sm uppercase tracking-widest font-black">No manuscripts found</p>
                   </div>
@@ -1423,6 +2670,15 @@ function Dashboard({
                     )}
                   </div>
                 </div>
+              </motion.div>
+            ) : activeTab === 'students' ? (
+              <motion.div
+                key="students-view"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <StudentManagementModule records={records} />
               </motion.div>
             ) : activeTab === 'registry' ? (
               <motion.div 

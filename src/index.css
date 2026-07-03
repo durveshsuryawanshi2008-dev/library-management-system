@@ -22,10 +22,15 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply font-sans antialiased transition-colors duration-500;
+    @apply font-sans antialiased;
     background-color: var(--bg-dark);
     color: var(--text-dark);
+    transition: background-color 0.4s ease, color 0.4s ease;
   }
   
   body.light {
