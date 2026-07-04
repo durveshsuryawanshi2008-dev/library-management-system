@@ -62,6 +62,7 @@ import { User, IssueRecord, Book, ChatMessage } from './types';
 import { formatDisplayDate, calculateDueDate } from './data';
 import { ALL_BOOKS } from './data/books';
 import { ToastViewport, type AppNotification, type ToastType } from './components/ToastViewport';
+import { MarketingLayout, MarketingShellHero, type MarketingPage } from './components/MarketingLayout';
 import { readStoredValue, writeStoredValue } from './lib/storage';
 
 const getInitialTheme = (): 'dark' | 'light' => {
@@ -74,6 +75,7 @@ const getInitialTheme = (): 'dark' | 'light' => {
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<'landing' | 'login' | 'dashboard'>('landing');
+  const [marketingPage, setMarketingPage] = useState<MarketingPage>('home');
   const [isHydrated, setIsHydrated] = useState(false);
   const [records, setRecords] = useState<IssueRecord[]>(() => readStoredValue<IssueRecord[]>('durvesh_records', []));
   const [isBooting, setIsBooting] = useState(false);
@@ -469,7 +471,15 @@ export default function App() {
             {isBooting ? (
               <BootScreen logs={bootLogs} />
             ) : view === 'landing' ? (
-              <LandingPage onEnter={() => setView('login')} />
+              <LandingPage
+                marketingPage={marketingPage}
+                onNavigate={setMarketingPage}
+                onOpenLogin={() => setMarketingPage('login')}
+                onOpenRegister={() => setMarketingPage('register')}
+                onOpenDemo={() => setMarketingPage('demo')}
+                onAuthenticate={handleLogin}
+                onEnter={() => setView('login')}
+              />
             ) : view === 'login' ? (
               <LoginPage onLogin={handleLogin} />
             ) : (
@@ -502,401 +512,416 @@ export default function App() {
   );
 }
 
-function LandingPage({ onEnter }: { onEnter: () => void }) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('home');
+function LandingPage({
+  marketingPage,
+  onNavigate,
+  onOpenLogin,
+  onOpenRegister,
+  onOpenDemo,
+  onAuthenticate,
+  onEnter,
+}: {
+  marketingPage: MarketingPage;
+  onNavigate: (page: MarketingPage) => void;
+  onOpenLogin: () => void;
+  onOpenRegister: () => void;
+  onOpenDemo: () => void;
+  onAuthenticate: (u: string, p: string) => boolean;
+  onEnter: () => void;
+}) {
+  const [registrationForm, setRegistrationForm] = useState({
+    collegeName: '',
+    address: '',
+    city: '',
+    state: '',
+    pinCode: '',
+    principalName: '',
+    adminName: '',
+    adminEmail: '',
+    phone: '',
+    capacity: '',
+    plan: 'Starter',
+    termsAccepted: false,
+  });
+  const [registrationStatus, setRegistrationStatus] = useState(false);
+  const [demoForm, setDemoForm] = useState({
+    name: '',
+    email: '',
+    college: '',
+    plan: 'Standard',
+    message: '',
+  });
+  const [demoStatus, setDemoStatus] = useState(false);
+  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+  const [contactStatus, setContactStatus] = useState(false);
 
   const features = [
     {
       icon: BookIcon,
-      title: 'Smart Catalog Browsing',
-      text: 'Explore books by department, category, author, and section with a fast, polished experience.'
+      title: 'Private multi-tenant library workspaces',
+      text: 'Each college gets a secure, isolated environment with role-aware controls and dedicated permissions.',
     },
     {
       icon: ShieldCheck,
-      title: 'Secure Issuance Flow',
-      text: 'Issue requests, approvals, returns, and wallet-based restrictions all stay organized in one place.'
+      title: 'AI-powered campus operations',
+      text: 'Deploy smart recommendations, automated approvals, and predictive insights without exposing data across tenants.',
     },
     {
       icon: Bot,
-      title: 'AI Librarian Support',
-      text: 'Ask for recommendations and receive instant suggestions based on your current catalog context.'
-    }
+      title: 'Professional admin experience',
+      text: 'Modern dashboards, notices, and student workflows are designed for fast onboarding and daily campus operations.',
+    },
   ];
 
-  const stats = [
-    { label: 'Books in catalog', value: '20k+' },
-    { label: 'Active users', value: '4.8k' },
-    { label: 'Avg. response', value: '< 2 min' },
-    { label: 'Satisfaction', value: '98%' }
+  const pricingPlans = [
+    { name: 'Starter', students: '200 Students', duration: '2 Years', price: '₹2,000', features: ['AI Disabled', 'Basic catalog tools', 'Email support'], popular: false },
+    { name: 'Standard', students: '500 Students', duration: '2 Years', price: '₹5,000', features: ['AI Enabled', 'Analytics dashboard', 'Priority onboarding'], popular: true },
+    { name: 'Professional', students: '1000 Students', duration: '2 Years', price: '₹10,000', features: ['AI Enabled', 'Advanced analytics', 'Priority support'], popular: false },
+    { name: 'Enterprise', students: 'Unlimited', duration: 'Custom', price: 'Custom Pricing', features: ['Dedicated onboarding', 'Custom integrations', 'SLA support'], popular: false },
+  ];
+
+  const steps = [
+    { title: 'Onboard your college', text: 'Register your institution and configure the library experience for your campus.' },
+    { title: 'Launch operations', text: 'Invite admins, approve workflows, and activate AI-assisted recommendations instantly.' },
+    { title: 'Scale with confidence', text: 'Monitor usage, optimize support, and expand to more departments without data overlap.' },
   ];
 
   const testimonials = [
-    {
-      name: 'Aisha Rao',
-      role: 'Department Head',
-      quote: 'The interface feels modern, intuitive, and far more professional than a typical library portal.'
-    },
-    {
-      name: 'Rohit Verma',
-      role: 'Student Representative',
-      quote: 'Finding books and submitting return requests feels effortless and clear from the first click.'
-    },
-    {
-      name: 'Meera Kulkarni',
-      role: 'Admin Operations',
-      quote: 'The approval flow and dashboard make daily library operations much easier to manage.'
-    }
+    { name: 'Aisha Rao', role: 'Principal, Green Valley College', quote: 'The experience feels enterprise-grade and immediately trustworthy for our campus team.' },
+    { name: 'Rohit Verma', role: 'Library Admin, Omkar Institute', quote: 'Our staff can manage queues, returns, and alerts from one elegant platform without confusion.' },
+    { name: 'Meera Kulkarni', role: 'Operations Head, Nirma University', quote: 'It is the first library platform that feels modern, secure, and ready for growth.' },
+  ];
+
+  const faqs = [
+    { question: 'Is data isolated per college?', answer: 'Yes. Every tenant is separated so no college can access the private data of another institution.' },
+    { question: 'Can we add AI later?', answer: 'Absolutely. The platform is designed to progressively enable AI features once your campus is ready.' },
+    { question: 'Is the registration form fully frontend ready?', answer: 'Yes. This phase focuses on professional UI and flow design without backend dependencies.' },
   ];
 
   const aboutPoints = [
-    'Designed for students, admins, and library staff in one unified experience.',
-    'Built around the existing catalog, issue, return, and messaging workflows.',
-    'Focused on clarity, speed, and a polished professional presentation.'
+    'Built for modern colleges that need a secure and scalable library operating layer.',
+    'Supports multi-tenant onboarding, private data boundaries, and professional admin workflows.',
+    'Prepared for later API integrations, analytics, and SaaS billing expansion.',
   ];
 
-  const navItems = [
-    { id: 'home', label: 'Home' },
-    { id: 'features', label: 'Features' },
-    { id: 'stats', label: 'Stats' },
-    { id: 'preview', label: 'Preview' },
-    { id: 'about', label: 'About' },
-    { id: 'contact', label: 'Contact' }
-  ];
+  const handleRegistrationSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setRegistrationStatus(true);
+  };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const offset = window.scrollY + 140;
-      const sections = navItems.map((item) => item.id);
-      let current = 'home';
+  const handleDemoSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setDemoStatus(true);
+  };
 
-      for (let index = sections.length - 1; index >= 0; index -= 1) {
-        const section = document.getElementById(sections[index]);
-        if (section && offset >= section.offsetTop) {
-          current = sections[index];
-          break;
-        }
-      }
+  const handleContactSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setContactStatus(true);
+  };
 
-      setActiveSection(current);
-    };
-
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [navItems]);
-
-  return (
-    <div className="w-full max-w-7xl space-y-8">
-      <header className="sticky top-4 z-50">
-        <div className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-white/10 bg-slate-950/70 px-4 py-3 shadow-2xl shadow-black/20 backdrop-blur-2xl sm:px-6 lg:px-8">
-          <a href="#home" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-library-gold/30 bg-library-gold/10 text-library-gold">
-              <Library size={18} />
+  const renderPageContent = () => {
+    if (marketingPage === 'login') {
+      return (
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div className="rounded-[36px] border border-white/10 bg-slate-950/65 p-8 shadow-[0_20px_70px_rgba(2,6,23,0.35)]">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Secure access</p>
+            <h2 className="mt-4 text-3xl font-black text-white">Login to your campus library workspace.</h2>
+            <p className="mt-4 text-sm leading-relaxed text-slate-300">Choose the appropriate portal for your college admin or student account and continue into the dashboard experience.</p>
+            <div className="mt-6 space-y-3 rounded-[24px] border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+              <p><span className="font-semibold text-white">Demo admin:</span> admin / admin</p>
+              <p><span className="font-semibold text-white">Demo student:</span> PRN from 12501–12600 / same as PRN</p>
             </div>
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.25em] text-white">Durvesh</p>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Library System</p>
-            </div>
-          </a>
-
-          <nav className="hidden items-center gap-2 lg:flex">
-            {navItems.map((item) => (
-              <a
-                key={item.id}
-                href={`#${item.id}`}
-                onClick={() => setIsMenuOpen(false)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition-all ${activeSection === item.id ? 'bg-library-gold/15 text-library-gold shadow-[0_0_20px_rgba(212,175,55,0.15)]' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <button onClick={onEnter} className="hidden rounded-full border border-library-gold/30 bg-library-gold/10 px-4 py-2 text-sm font-semibold text-library-gold transition-all hover:bg-library-gold/20 sm:inline-flex">
-              Enter Library
-            </button>
-            <button
-              onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition-all hover:bg-white/10 lg:hidden"
-              aria-label="Toggle navigation menu"
-            >
-              {isMenuOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
           </div>
+          <LoginPage onLogin={onAuthenticate} />
         </div>
+      );
+    }
 
-        {isMenuOpen && (
-          <div className="mx-auto mt-3 max-w-7xl rounded-[24px] border border-white/10 bg-slate-950/90 p-4 shadow-2xl shadow-black/20 backdrop-blur-2xl lg:hidden">
-            <div className="flex flex-col gap-2">
-              {navItems.map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${activeSection === item.id ? 'bg-library-gold/15 text-library-gold' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}
-                >
-                  {item.label}
-                </a>
-              ))}
-              <button onClick={() => { setIsMenuOpen(false); onEnter(); }} className="mt-2 rounded-2xl border border-library-gold/30 bg-library-gold/10 px-4 py-3 text-left text-sm font-semibold text-library-gold">
-                Enter Library
-              </button>
-            </div>
-          </div>
-        )}
-      </header>
+    if (marketingPage === 'register') {
+      return (
+        <div className="space-y-8">
+          <section className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 p-8 shadow-[0_18px_70px_rgba(2,6,23,0.3)] sm:p-10">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Register college</p>
+            <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">Launch your campus library platform with a professional onboarding flow.</h2>
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-300">The form below is prepared for future backend integration while presenting a polished, SaaS-ready registration path.</p>
+          </section>
 
-      <motion.section
-        id="home"
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative overflow-hidden glass-panel rounded-[40px] p-8 sm:p-10 lg:p-14"
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-library-gold/20 via-slate-950/70 to-indigo-950/80"></div>
-        <div className="relative z-10 grid gap-10 lg:grid-cols-[1.1fr_0.9fr] items-center">
-          <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-library-gold/20 bg-library-gold/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-library-gold">
-              <Sparkles size={14} />
-              Modern academic operations
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-serif italic text-white font-bold leading-tight">
-                Elevate your library with a refined digital experience.
-              </h2>
-              <p className="max-w-2xl text-lg text-gray-300 leading-relaxed">
-                Streamline catalog browsing, issue approvals, return requests, and student support through a polished ecosystem designed for everyday campus use.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button onClick={onEnter} className="metallic-btn w-full sm:w-auto">
-                Enter Library
-                <ArrowRight size={18} />
-              </button>
-              <a href="#preview" className="secondary-btn w-full sm:w-auto">
-                View Preview
-              </a>
-            </div>
-            <div className="flex flex-wrap gap-6 text-sm text-gray-400">
-              <div className="flex items-center gap-2">
-                <BadgeCheck size={16} className="text-library-gold" />
-                Secure access
-              </div>
-              <div className="flex items-center gap-2">
-                <Zap size={16} className="text-library-gold" />
-                Fast workflows
-              </div>
-              <div className="flex items-center gap-2">
-                <Users size={16} className="text-library-gold" />
-                Student ready
-              </div>
-            </div>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="rounded-[32px] border border-white/10 bg-slate-950/70 p-6 shadow-2xl"
-          >
-            <div className="rounded-[24px] border border-library-gold/20 bg-gradient-to-br from-library-gold/15 to-slate-900 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400">Live dashboard</p>
-                  <p className="text-xl font-black text-white">Operations overview</p>
+          <section className="rounded-[40px] border border-white/10 bg-slate-950/70 p-6 shadow-[0_18px_70px_rgba(2,6,23,0.2)] sm:p-8">
+            {!registrationStatus ? (
+              <form className="grid gap-4 md:grid-cols-2" onSubmit={handleRegistrationSubmit}>
+                <input className="glass-input" placeholder="College Name" value={registrationForm.collegeName} onChange={(e) => setRegistrationForm({ ...registrationForm, collegeName: e.target.value })} required />
+                <input className="glass-input" placeholder="Address" value={registrationForm.address} onChange={(e) => setRegistrationForm({ ...registrationForm, address: e.target.value })} required />
+                <input className="glass-input" placeholder="City" value={registrationForm.city} onChange={(e) => setRegistrationForm({ ...registrationForm, city: e.target.value })} required />
+                <input className="glass-input" placeholder="State" value={registrationForm.state} onChange={(e) => setRegistrationForm({ ...registrationForm, state: e.target.value })} required />
+                <input className="glass-input" placeholder="PIN Code" value={registrationForm.pinCode} onChange={(e) => setRegistrationForm({ ...registrationForm, pinCode: e.target.value })} required />
+                <input className="glass-input" placeholder="Principal Name" value={registrationForm.principalName} onChange={(e) => setRegistrationForm({ ...registrationForm, principalName: e.target.value })} required />
+                <input className="glass-input" placeholder="Library Admin Name" value={registrationForm.adminName} onChange={(e) => setRegistrationForm({ ...registrationForm, adminName: e.target.value })} required />
+                <input className="glass-input" placeholder="Library Admin Email" type="email" value={registrationForm.adminEmail} onChange={(e) => setRegistrationForm({ ...registrationForm, adminEmail: e.target.value })} required />
+                <input className="glass-input" placeholder="Phone Number" value={registrationForm.phone} onChange={(e) => setRegistrationForm({ ...registrationForm, phone: e.target.value })} required />
+                <input className="glass-input" placeholder="Student Capacity" value={registrationForm.capacity} onChange={(e) => setRegistrationForm({ ...registrationForm, capacity: e.target.value })} required />
+                <select className="glass-input" value={registrationForm.plan} onChange={(e) => setRegistrationForm({ ...registrationForm, plan: e.target.value })}>
+                  <option value="Starter">Starter</option>
+                  <option value="Standard">Standard</option>
+                  <option value="Professional">Professional</option>
+                  <option value="Enterprise">Enterprise</option>
+                </select>
+                <label className="flex items-center gap-3 rounded-[24px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+                  <input type="checkbox" checked={registrationForm.termsAccepted} onChange={(e) => setRegistrationForm({ ...registrationForm, termsAccepted: e.target.checked })} required />
+                  I agree to the platform terms.
+                </label>
+                <div className="md:col-span-2 flex flex-col gap-3 sm:flex-row">
+                  <button type="submit" className="metallic-btn w-full sm:w-auto">Submit Registration</button>
+                  <button type="button" onClick={onOpenDemo} className="secondary-btn w-full sm:w-auto">Request Demo</button>
                 </div>
-                <div className="rounded-full border border-green-400/20 bg-green-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-green-400">
-                  Online
-                </div>
+              </form>
+            ) : (
+              <div className="rounded-[32px] border border-emerald-400/20 bg-emerald-400/10 p-8 text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-300">Registration submitted successfully</p>
+                <h3 className="mt-3 text-2xl font-black text-white">Waiting for super admin approval.</h3>
+                <p className="mt-3 text-sm text-slate-300">Your college request has been captured and is ready for verification by the platform team.</p>
               </div>
+            )}
+          </section>
+        </div>
+      );
+    }
+
+    if (marketingPage === 'demo') {
+      return (
+        <div className="space-y-8">
+          <section className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 p-8 shadow-[0_18px_70px_rgba(2,6,23,0.3)] sm:p-10">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Request demo</p>
+            <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">Book a guided walkthrough for your campus team.</h2>
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-300">We will tailor the demo around your college size, library workflows, and growth goals.</p>
+          </section>
+
+          <section className="rounded-[40px] border border-white/10 bg-slate-950/70 p-6 shadow-[0_18px_70px_rgba(2,6,23,0.2)] sm:p-8">
+            {!demoStatus ? (
+              <form className="grid gap-4 md:grid-cols-2" onSubmit={handleDemoSubmit}>
+                <input className="glass-input" placeholder="Your Name" value={demoForm.name} onChange={(e) => setDemoForm({ ...demoForm, name: e.target.value })} required />
+                <input className="glass-input" placeholder="Work Email" type="email" value={demoForm.email} onChange={(e) => setDemoForm({ ...demoForm, email: e.target.value })} required />
+                <input className="glass-input" placeholder="College Name" value={demoForm.college} onChange={(e) => setDemoForm({ ...demoForm, college: e.target.value })} required />
+                <select className="glass-input" value={demoForm.plan} onChange={(e) => setDemoForm({ ...demoForm, plan: e.target.value })}>
+                  <option value="Starter">Starter</option>
+                  <option value="Standard">Standard</option>
+                  <option value="Professional">Professional</option>
+                  <option value="Enterprise">Enterprise</option>
+                </select>
+                <textarea className="glass-input md:col-span-2 min-h-32" placeholder="Tell us about your library goals." value={demoForm.message} onChange={(e) => setDemoForm({ ...demoForm, message: e.target.value })} required />
+                <div className="md:col-span-2">
+                  <button type="submit" className="metallic-btn w-full sm:w-auto">Book Demo</button>
+                </div>
+              </form>
+            ) : (
+              <div className="rounded-[32px] border border-sky-400/20 bg-sky-400/10 p-8 text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Demo request submitted</p>
+                <h3 className="mt-3 text-2xl font-black text-white">Our team will contact you shortly.</h3>
+              </div>
+            )}
+          </section>
+        </div>
+      );
+    }
+
+    if (marketingPage === 'about') {
+      return (
+        <div className="space-y-8">
+          <section className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 p-8 shadow-[0_18px_70px_rgba(2,6,23,0.3)] sm:p-10">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">About CampusLibrary AI</p>
+            <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">A clean SaaS platform for colleges that need secure, private, and modern library operations.</h2>
+            <p className="mt-4 max-w-3xl text-base leading-relaxed text-slate-300">The product is intentionally built as a multi-tenant foundation so each campus can operate independently while staying ready for future AI, analytics, and billing integrations.</p>
+          </section>
+
+          <section className="grid gap-6 lg:grid-cols-3">
+            {aboutPoints.map((point, index) => (
+              <div key={point} className="rounded-[32px] border border-white/10 bg-slate-950/70 p-6 shadow-[0_15px_50px_rgba(2,6,23,0.18)]">
+                <div className="mb-4 inline-flex rounded-2xl border border-sky-400/20 bg-sky-400/10 p-3 text-sky-300">
+                  <ShieldCheck size={18} />
+                </div>
+                <h3 className="text-lg font-black text-white">Pillar {index + 1}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-300">{point}</p>
+              </div>
+            ))}
+          </section>
+        </div>
+      );
+    }
+
+    if (marketingPage === 'contact') {
+      return (
+        <div className="space-y-8">
+          <section className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 p-8 shadow-[0_18px_70px_rgba(2,6,23,0.3)] sm:p-10">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Contact us</p>
+            <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">Discuss your campus requirements with our team.</h2>
+          </section>
+
+          <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8">
               <div className="space-y-4">
-                <div className="rounded-2xl bg-white/5 p-4">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Today’s circulation</p>
-                  <p className="mt-2 text-3xl font-serif italic text-library-gold">124 requests</p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Pending approvals</p>
-                    <p className="mt-2 text-2xl font-black text-white">18</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Returns today</p>
-                    <p className="mt-2 text-2xl font-black text-white">9</p>
-                  </div>
-                </div>
+                <a href="mailto:hello@campuslibrary.ai" className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 hover:border-sky-400/30">
+                  <Mail size={18} className="text-sky-300" />
+                  hello@campuslibrary.ai
+                </a>
+                <a href="tel:+919999999999" className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 hover:border-sky-400/30">
+                  <Phone size={18} className="text-sky-300" />
+                  +91 99999 99999
+                </a>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Pune, Maharashtra, India</div>
               </div>
             </div>
-          </motion.div>
+            <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8">
+              {!contactStatus ? (
+                <form className="space-y-4" onSubmit={handleContactSubmit}>
+                  <input className="glass-input w-full" placeholder="Your Name" value={contactForm.name} onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })} required />
+                  <input className="glass-input w-full" placeholder="Work Email" type="email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} required />
+                  <textarea className="glass-input min-h-32 w-full" placeholder="How can we help?" value={contactForm.message} onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })} required />
+                  <button type="submit" className="metallic-btn w-full sm:w-auto">Send Message</button>
+                </form>
+              ) : (
+                <div className="rounded-[32px] border border-sky-400/20 bg-sky-400/10 p-8 text-center">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Thanks for reaching out</p>
+                  <h3 className="mt-3 text-2xl font-black text-white">We will get back to you soon.</h3>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
-      </motion.section>
+      );
+    }
 
-      <section id="features" className="grid gap-6 md:grid-cols-3">
-        {features.map((feature, index) => {
-          const Icon = feature.icon;
-          return (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.4, delay: index * 0.08 }}
-              className="glass-panel rounded-[32px] p-6 border-white/5"
-            >
-              <div className="mb-4 inline-flex rounded-2xl border border-library-gold/20 bg-library-gold/10 p-3 text-library-gold">
-                <Icon size={20} />
-              </div>
-              <h3 className="text-lg font-black text-white">{feature.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-gray-400">{feature.text}</p>
-            </motion.div>
-          );
-        })}
-      </section>
+    if (marketingPage === 'privacy') {
+      return (
+        <div className="rounded-[40px] border border-white/10 bg-slate-950/70 p-8 shadow-[0_18px_70px_rgba(2,6,23,0.2)] sm:p-10">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Privacy policy</p>
+          <h2 className="mt-3 text-3xl font-black text-white">CampusLibrary AI is built with tenant privacy at the core.</h2>
+          <p className="mt-4 text-slate-300">Each college operates in a private workspace, and the platform is designed to keep institutional data separate and secure. This frontend is currently a polished prototype and is prepared for later backend privacy enforcement.</p>
+        </div>
+      );
+    }
 
-      <section id="stats" className="glass-panel rounded-[40px] p-8 sm:p-10">
-        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] items-start">
-          <div className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-library-gold">Performance snapshot</p>
-            <h3 className="text-3xl font-serif italic text-white font-bold">Trusted by modern library teams.</h3>
-            <p className="text-gray-400 leading-relaxed">
-              Every workflow is designed to feel fast, clear, and professional while keeping the familiar login and dashboard experience intact.
-            </p>
+    if (marketingPage === 'terms') {
+      return (
+        <div className="rounded-[40px] border border-white/10 bg-slate-950/70 p-8 shadow-[0_18px_70px_rgba(2,6,23,0.2)] sm:p-10">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Terms of service</p>
+          <h2 className="mt-3 text-3xl font-black text-white">Use of the platform is subject to institution-level approval and secure access policies.</h2>
+          <p className="mt-4 text-slate-300">By requesting access you agree to maintain proper authorization for your college and to use the platform in alignment with institutional policies and applicable data handling requirements.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-8">
+        <MarketingShellHero
+          eyebrow="Multi-tenant SaaS for modern campuses"
+          title="Turn your college library into a premium, AI-ready digital platform."
+          description="CampusLibrary AI gives every college a private library workspace with secure operations, intelligent workflows, and a polished experience for admins, faculty, and students."
+          primaryAction={<button type="button" onClick={onOpenRegister} className="metallic-btn w-full sm:w-auto">Register College</button>}
+          secondaryAction={<button type="button" onClick={onOpenDemo} className="secondary-btn w-full sm:w-auto">Request Demo</button>}
+        />
+
+        <section className="grid gap-6 md:grid-cols-3">
+          {features.map((feature, index) => {
+            const Icon = feature.icon;
+            return (
+              <motion.div key={feature.title} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.4, delay: index * 0.08 }} className="rounded-[32px] border border-white/10 bg-slate-950/70 p-6 shadow-[0_12px_45px_rgba(2,6,23,0.16)]">
+                <div className="mb-4 inline-flex rounded-2xl border border-sky-400/20 bg-sky-400/10 p-3 text-sky-300">
+                  <Icon size={20} />
+                </div>
+                <h3 className="text-lg font-black text-white">{feature.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-300">{feature.text}</p>
+              </motion.div>
+            );
+          })}
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8 shadow-[0_15px_50px_rgba(2,6,23,0.18)]">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">How it works</p>
+            <h3 className="mt-4 text-3xl font-black text-white">A guided path from registration to daily campus operations.</h3>
+            <div className="mt-6 space-y-4">
+              {steps.map((step, index) => (
+                <div key={step.title} className="flex gap-3 rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-400/10 text-sm font-black text-sky-300">0{index + 1}</div>
+                  <div>
+                    <p className="font-semibold text-white">{step.title}</p>
+                    <p className="mt-1 text-sm text-slate-300">{step.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="rounded-[24px] border border-white/10 bg-white/5 p-4 text-center">
-                <p className="text-2xl font-black text-white">{stat.value}</p>
-                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">{stat.label}</p>
+
+          <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8 shadow-[0_15px_50px_rgba(2,6,23,0.18)]">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Pricing</p>
+            <h3 className="mt-4 text-3xl font-black text-white">Flexible plans that grow with each institution.</h3>
+            <div className="mt-6 grid gap-4 xl:grid-cols-2">
+              {pricingPlans.map((plan) => (
+                <div key={plan.name} className={`rounded-[28px] border p-5 ${plan.popular ? 'border-sky-400/30 bg-sky-400/10' : 'border-white/10 bg-white/5'}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="text-lg font-black text-white">{plan.name}</h4>
+                    {plan.popular && <span className="rounded-full bg-sky-400/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-sky-300">Popular</span>}
+                  </div>
+                  <p className="mt-2 text-sm text-slate-300">{plan.students}</p>
+                  <p className="mt-2 text-sm text-slate-300">{plan.duration}</p>
+                  <p className="mt-4 text-3xl font-black text-white">{plan.price}</p>
+                  <ul className="mt-4 space-y-2 text-sm text-slate-300">
+                    {plan.features.map((feature) => <li key={feature} className="flex items-center gap-2"><BadgeCheck size={14} className="text-sky-300" />{feature}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[40px] border border-white/10 bg-slate-950/70 p-8 shadow-[0_15px_50px_rgba(2,6,23,0.18)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Testimonials</p>
+              <h3 className="mt-3 text-3xl font-black text-white">Trusted by campus leaders who want a more mature library experience.</h3>
+            </div>
+            <button type="button" onClick={onOpenRegister} className="metallic-btn w-full sm:w-auto">Get Started</button>
+          </div>
+          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            {testimonials.map((testimonial) => (
+              <div key={testimonial.name} className="rounded-[28px] border border-white/10 bg-white/5 p-6">
+                <div className="mb-4 flex gap-1 text-sky-300">{Array.from({ length: 5 }).map((_, index) => <Star key={index} size={14} fill="currentColor" />)}</div>
+                <p className="text-sm leading-relaxed text-slate-300">“{testimonial.quote}”</p>
+                <div className="mt-5">
+                  <p className="font-semibold text-white">{testimonial.name}</p>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-slate-500">{testimonial.role}</p>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="preview" className="grid gap-6 lg:grid-cols-2">
-        <div className="glass-panel rounded-[36px] p-6">
-          <div className="mb-4 flex items-center gap-2 text-library-gold">
-            <MonitorPlay size={18} />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em]">Preview placeholder</p>
-          </div>
-          <div className="flex h-56 items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-gradient-to-br from-slate-900 to-slate-800 text-center text-gray-400">
-            <div>
-              <p className="text-lg font-black text-white">Catalog experience</p>
-              <p className="mt-2 text-sm">Book discovery and smart filters preview</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-panel rounded-[36px] p-6">
-          <div className="mb-4 flex items-center gap-2 text-library-gold">
-            <MonitorPlay size={18} />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em]">Preview placeholder</p>
-          </div>
-          <div className="flex h-56 items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-gradient-to-br from-slate-900 to-indigo-950 text-center text-gray-400">
-            <div>
-              <p className="text-lg font-black text-white">Admin operations</p>
-              <p className="mt-2 text-sm">Issue approvals and return workflows preview</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="testimonials" className="grid gap-6 lg:grid-cols-3">
-        {testimonials.map((item, index) => (
-          <motion.div
-            key={item.name}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.4, delay: index * 0.08 }}
-            className="glass-panel rounded-[32px] p-6"
-          >
-            <div className="mb-4 flex items-center gap-1 text-library-gold">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} size={14} fill="currentColor" />
+        <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">FAQs</p>
+            <div className="mt-6 space-y-3">
+              {faqs.map((faq) => (
+                <details key={faq.question} className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <summary className="cursor-pointer font-semibold text-white">{faq.question}</summary>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-300">{faq.answer}</p>
+                </details>
               ))}
             </div>
-            <div className="mb-4 flex items-start gap-3">
-              <div className="rounded-full bg-library-gold/10 p-2 text-library-gold">
-                <Quote size={16} />
-              </div>
-              <p className="text-sm leading-relaxed text-gray-300">“{item.quote}”</p>
+          </div>
+          <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Contact</p>
+            <h3 className="mt-4 text-3xl font-black text-white">Ready to modernize your campus library experience?</h3>
+            <p className="mt-4 text-slate-300">Speak with our team to discuss onboarding, pricing, or a live product walkthrough.</p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button type="button" onClick={onOpenRegister} className="metallic-btn w-full sm:w-auto">Register College</button>
+              <button type="button" onClick={onOpenDemo} className="secondary-btn w-full sm:w-auto">Book Demo</button>
             </div>
-            <div>
-              <p className="font-black text-white">{item.name}</p>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500">{item.role}</p>
-            </div>
-          </motion.div>
-        ))}
-      </section>
+          </div>
+        </section>
+      </div>
+    );
+  };
 
-      <section id="about" className="glass-panel rounded-[40px] p-8 sm:p-10">
-        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] items-center">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-library-gold">About the project</p>
-            <h3 className="mt-3 text-3xl font-serif italic text-white font-bold">A polished library experience built to feel premium and practical.</h3>
-            <p className="mt-4 text-gray-400 leading-relaxed">
-              This system combines a modern landing experience with the existing catalog, issue, return, and communication features that already power the application.
-            </p>
-          </div>
-          <div className="rounded-[32px] border border-white/10 bg-slate-950/60 p-6">
-            <ul className="space-y-4">
-              {aboutPoints.map((point) => (
-                <li key={point} className="flex items-start gap-3 text-sm text-gray-300">
-                  <div className="mt-0.5 rounded-full bg-library-gold/10 p-1 text-library-gold">
-                    <ShieldCheck size={14} />
-                  </div>
-                  <span>{point}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section id="contact" className="glass-panel rounded-[40px] p-8 sm:p-10">
-        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] items-center">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-library-gold">Contact</p>
-            <h3 className="mt-3 text-3xl font-serif italic text-white font-bold">Let’s connect about your library workflow.</h3>
-            <p className="mt-4 text-gray-400 leading-relaxed">
-              Whether you want to explore the current experience or discuss future improvements, the contact section is ready for your next step.
-            </p>
-          </div>
-          <div className="space-y-4 rounded-[32px] border border-white/10 bg-slate-950/60 p-6">
-            <a href="mailto:durvesh@example.com" className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 transition-all hover:border-library-gold/30">
-              <Mail size={18} className="text-library-gold" />
-              <span className="text-sm text-white">durvesh@example.com</span>
-            </a>
-            <a href="tel:+919999999999" className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 transition-all hover:border-library-gold/30">
-              <Phone size={18} className="text-library-gold" />
-              <span className="text-sm text-white">+91 99999 99999</span>
-            </a>
-            <button onClick={onEnter} className="metallic-btn w-full">
-              Open Library Portal
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <footer className="rounded-[32px] border border-white/10 bg-slate-950/50 px-8 py-8 text-center text-sm text-gray-400">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="font-black text-white">Durvesh Library System</p>
-            <p className="mt-1 text-xs uppercase tracking-[0.3em] text-gray-500">Professional • Responsive • Secure</p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-4 text-xs uppercase tracking-[0.25em]">
-            <a href="#features" className="hover:text-library-gold transition-colors">Features</a>
-            <a href="#preview" className="hover:text-library-gold transition-colors">Preview</a>
-            <a href="#about" className="hover:text-library-gold transition-colors">About</a>
-            <a href="#contact" className="hover:text-library-gold transition-colors">Contact</a>
-            <button onClick={onEnter} className="hover:text-library-gold transition-colors">Sign In</button>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
+  return <MarketingLayout activePage={marketingPage} onNavigate={onNavigate} onOpenLogin={onOpenLogin} onOpenRegister={onOpenRegister} children={renderPageContent()} />;
 }
 
 function LibraryAI({ books }: { books: Book[] }) {
