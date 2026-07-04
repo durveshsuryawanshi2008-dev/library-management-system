@@ -32,11 +32,61 @@ const navItems: Array<{ id: MarketingPage; label: string }> = [
 export function MarketingLayout({ activePage, onNavigate, onOpenLogin, onOpenRegister, children }: Props) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  const handleNavigation = (pageId: MarketingPage) => {
+    setIsMenuOpen(false);
+
+    if (pageId === 'home') {
+      onNavigate('home');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Scroll dynamically to targeted sections if we are clicking a home-section nav item
+    if (['features', 'pricing', 'about', 'contact'].includes(pageId)) {
+      if (activePage !== 'home' && activePage !== pageId) {
+        onNavigate('home');
+        setTimeout(() => {
+          const el = document.getElementById(pageId);
+          if (el) {
+            const offset = 100; // Account for sticky header height
+            const bodyRect = document.body.getBoundingClientRect().top;
+            const elementRect = el.getBoundingClientRect().top;
+            const elementPosition = elementRect - bodyRect;
+            const offsetPosition = elementPosition - offset;
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          }
+        }, 120);
+      } else {
+        const el = document.getElementById(pageId);
+        if (el) {
+          const offset = 100; // Account for sticky header height
+          const bodyRect = document.body.getBoundingClientRect().top;
+          const elementRect = el.getBoundingClientRect().top;
+          const elementPosition = elementRect - bodyRect;
+          const offsetPosition = elementPosition - offset;
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }
+      onNavigate(pageId);
+      return;
+    }
+
+    onNavigate(pageId);
+  };
+
   return (
     <div className="w-full max-w-7xl space-y-8">
       <header className="sticky top-4 z-50">
         <div className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-white/15 bg-slate-950/70 px-4 py-3 shadow-[0_20px_80px_rgba(15,23,42,0.35)] backdrop-blur-2xl sm:px-6 lg:px-8">
-          <button type="button" onClick={() => onNavigate('home')} className="flex items-center gap-3">
+          <button type="button" onClick={() => handleNavigation('home')} className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-full border border-sky-400/30 bg-sky-400/10 text-sky-300">
               <Library size={18} />
             </div>
@@ -51,8 +101,12 @@ export function MarketingLayout({ activePage, onNavigate, onOpenLogin, onOpenReg
               <button
                 key={item.id}
                 type="button"
-                onClick={() => onNavigate(item.id)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition-all ${activePage === item.id ? 'bg-sky-400/15 text-sky-300 shadow-[0_0_20px_rgba(56,189,248,0.2)]' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
+                onClick={() => handleNavigation(item.id)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-all cursor-pointer ${
+                  activePage === item.id
+                    ? 'bg-sky-400/15 text-sky-300 shadow-[0_0_20px_rgba(56,189,248,0.2)]'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
               >
                 {item.label}
               </button>
@@ -63,21 +117,21 @@ export function MarketingLayout({ activePage, onNavigate, onOpenLogin, onOpenReg
             <button
               type="button"
               onClick={onOpenLogin}
-              className="hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 transition-all hover:bg-white/10 sm:inline-flex"
+              className="hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 transition-all hover:bg-white/10 sm:inline-flex cursor-pointer"
             >
               Login
             </button>
             <button
               type="button"
               onClick={onOpenRegister}
-              className="hidden rounded-full bg-sky-400 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:bg-sky-300 sm:inline-flex"
+              className="hidden rounded-full bg-sky-400 px-4 py-2 text-sm font-semibold text-slate-950 transition-all hover:bg-sky-300 sm:inline-flex cursor-pointer"
             >
               Register College
             </button>
             <button
               type="button"
               onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition-all hover:bg-white/10 lg:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition-all hover:bg-white/10 lg:hidden cursor-pointer"
               aria-label="Toggle navigation menu"
             >
               {isMenuOpen ? <X size={18} /> : <Menu size={18} />}
@@ -92,11 +146,10 @@ export function MarketingLayout({ activePage, onNavigate, onOpenLogin, onOpenReg
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => {
-                    onNavigate(item.id);
-                    setIsMenuOpen(false);
-                  }}
-                  className={`rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all ${activePage === item.id ? 'bg-sky-400/15 text-sky-300' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
+                  onClick={() => handleNavigation(item.id)}
+                  className={`rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all ${
+                    activePage === item.id ? 'bg-sky-400/15 text-sky-300' : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  }`}
                 >
                   {item.label}
                 </button>
@@ -107,7 +160,7 @@ export function MarketingLayout({ activePage, onNavigate, onOpenLogin, onOpenReg
                   setIsMenuOpen(false);
                   onOpenLogin();
                 }}
-                className="mt-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-semibold text-slate-100"
+                className="mt-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-semibold text-slate-100 cursor-pointer"
               >
                 Login
               </button>
@@ -117,7 +170,7 @@ export function MarketingLayout({ activePage, onNavigate, onOpenLogin, onOpenReg
                   setIsMenuOpen(false);
                   onOpenRegister();
                 }}
-                className="rounded-2xl bg-sky-400 px-4 py-3 text-left text-sm font-semibold text-slate-950"
+                className="rounded-2xl bg-sky-400 px-4 py-3 text-left text-sm font-semibold text-slate-950 cursor-pointer"
               >
                 Register College
               </button>
@@ -135,11 +188,11 @@ export function MarketingLayout({ activePage, onNavigate, onOpenLogin, onOpenReg
             <p className="mt-1 text-xs uppercase tracking-[0.3em] text-slate-500">Secure • Scalable • AI-ready</p>
           </div>
           <div className="flex flex-wrap gap-4 text-xs uppercase tracking-[0.25em]">
-            <button type="button" onClick={() => onNavigate('features')} className="transition-colors hover:text-sky-300">Features</button>
-            <button type="button" onClick={() => onNavigate('pricing')} className="transition-colors hover:text-sky-300">Pricing</button>
-            <button type="button" onClick={() => onNavigate('about')} className="transition-colors hover:text-sky-300">About</button>
-            <button type="button" onClick={() => onNavigate('contact')} className="transition-colors hover:text-sky-300">Contact</button>
-            <button type="button" onClick={() => onNavigate('privacy')} className="transition-colors hover:text-sky-300">Privacy</button>
+            <button type="button" onClick={() => handleNavigation('features')} className="transition-colors hover:text-sky-300 cursor-pointer">Features</button>
+            <button type="button" onClick={() => handleNavigation('pricing')} className="transition-colors hover:text-sky-300 cursor-pointer">Pricing</button>
+            <button type="button" onClick={() => handleNavigation('about')} className="transition-colors hover:text-sky-300 cursor-pointer">About</button>
+            <button type="button" onClick={() => handleNavigation('contact')} className="transition-colors hover:text-sky-300 cursor-pointer">Contact</button>
+            <button type="button" onClick={() => handleNavigation('privacy')} className="transition-colors hover:text-sky-300 cursor-pointer">Privacy</button>
           </div>
         </div>
       </footer>

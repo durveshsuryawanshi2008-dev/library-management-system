@@ -13,9 +13,10 @@ const collegeSchema = new mongoose.Schema(
     phone: { type: String, required: true, trim: true },
     studentCapacity: { type: Number, required: true },
     plan: { type: String, enum: ['Starter', 'Standard', 'Professional', 'Enterprise'], default: 'Starter' },
-    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-    code: { type: String, unique: true, sparse: true },
+    status: { type: String, enum: ['pending', 'approved', 'rejected', 'suspended'], default: 'pending' },
+    code: { type: String, unique: true, required: true },
     logoUrl: { type: String, default: '' },
+    aiEnabled: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

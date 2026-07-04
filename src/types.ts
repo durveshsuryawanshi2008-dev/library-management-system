@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'student';
+export type UserRole = 'admin' | 'student' | 'super_admin' | 'college_admin' | 'librarian';
 
 export interface User {
   id: string;
@@ -18,6 +18,8 @@ export interface Book {
   category: string;
   department: string;
   isAvailable?: boolean;
+  publisher?: string;
+  reservedCount?: number;
 }
 
 export interface ChatMessage {

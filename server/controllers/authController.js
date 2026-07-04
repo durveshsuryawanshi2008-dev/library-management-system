@@ -1,6 +1,6 @@
 import collegeService from '../services/collegeService.js';
 import userService from '../services/userService.js';
-import { signToken } from '../utils/jwt.js';
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 
 function generateCollegeCode(name) {
   const base = name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase();
@@ -79,7 +79,6 @@ export async function login(req, res) {
 
     let user = null;
 
-    // Support email-based login OR prn/collegeCode student login
     if (email) {
       user = await userService.getUserByEmail(email);
     } else if (prn && collegeCode) {
@@ -95,7 +94,6 @@ export async function login(req, res) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Role-based verification
     if (role === 'admin' && user.role !== 'college_admin' && user.role !== 'super_admin' && user.role !== 'librarian') {
       return res.status(403).json({ message: 'Admin access denied' });
     }
@@ -104,7 +102,6 @@ export async function login(req, res) {
       return res.status(403).json({ message: 'Student access denied' });
     }
 
-    // Check college approval status (except for platform-level super_admin)
     if (user.role !== 'super_admin' && user.collegeId) {
       const college = await collegeService.getCollegeById(user.collegeId);
       if (!college) {
@@ -117,11 +114,22 @@ export async function login(req, res) {
       }
     }
 
-    const token = signToken({ userId: user._id, role: user.role, collegeId: user.collegeId });
+    const accessToken = signAccessToken({ userId: user._id, role: user.role, collegeId: user.collegeId });
+    const refreshToken = signRefreshToken({ userId: user._id });
+
+    // Set refresh token in HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
 
     res.json({
       message: 'Login successful',
-      token,
+      accessToken,
+      token: accessToken, // backward compatibility
+      refreshToken,
       user: {
         id: user._id,
         role: user.role,
@@ -136,4 +144,57 @@ export async function login(req, res) {
   }
 }
 
-export default { registerCollege, approveCollege, login };
+export async function refresh(req, res) {
+  try {
+    const cookieHeader = req.headers.cookie || '';
+    const cookies = Object.fromEntries(
+      cookieHeader.split('; ').map(c => {
+        const split = c.split('=');
+        return [split[0] || '', split[1] || ''];
+      })
+    );
+
+    const refreshToken = cookies.refreshToken || req.body.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'Refresh token is required' });
+    }
+
+    const decoded = verifyRefreshToken(refreshToken);
+    const user = await userService.getUserById(decoded.userId);
+
+    if (!user || user.status !== 'active') {
+      return res.status(401).json({ message: 'User is unauthorized or suspended' });
+    }
+
+    const newAccessToken = signAccessToken({ userId: user._id, role: user.role, collegeId: user.collegeId });
+    const newRefreshToken = signRefreshToken({ userId: user._id });
+
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.json({
+      message: 'Token refreshed',
+      accessToken: newAccessToken,
+      token: newAccessToken,
+      refreshToken: newRefreshToken
+    });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid or expired refresh token', error: error.message });
+  }
+}
+
+export async function logout(req, res) {
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  res.json({ message: 'Logout successful' });
+}
+
+export default { registerCollege, approveCollege, login, refresh, logout };

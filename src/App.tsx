@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, FormEvent } from 'react';
+import { useState, useEffect, useMemo, FormEvent, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Book as BookIcon, 
@@ -40,7 +40,10 @@ import {
   Quote,
   Mail,
   Phone,
-  Menu
+  Menu,
+  Eye,
+  EyeOff,
+  Upload
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -554,6 +557,8 @@ function LandingPage({
   const [demoStatus, setDemoStatus] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
   const [contactStatus, setContactStatus] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<'biennial' | 'annual'>('biennial');
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
   const features = [
     {
@@ -574,10 +579,10 @@ function LandingPage({
   ];
 
   const pricingPlans = [
-    { name: 'Starter', students: '200 Students', duration: '2 Years', price: '₹2,000', features: ['AI Disabled', 'Basic catalog tools', 'Email support'], popular: false },
-    { name: 'Standard', students: '500 Students', duration: '2 Years', price: '₹5,000', features: ['AI Enabled', 'Analytics dashboard', 'Priority onboarding'], popular: true },
-    { name: 'Professional', students: '1000 Students', duration: '2 Years', price: '₹10,000', features: ['AI Enabled', 'Advanced analytics', 'Priority support'], popular: false },
-    { name: 'Enterprise', students: 'Unlimited', duration: 'Custom', price: 'Custom Pricing', features: ['Dedicated onboarding', 'Custom integrations', 'SLA support'], popular: false },
+    { name: 'Starter', students: '200 Students', duration: billingCycle === 'annual' ? 'Billed Annually' : '2 Years Access', price: billingCycle === 'annual' ? '₹800/yr' : '₹2,000', features: ['AI Disabled', 'Basic catalog tools', 'Email support'], popular: false },
+    { name: 'Standard', students: '500 Students', duration: billingCycle === 'annual' ? 'Billed Annually' : '2 Years Access', price: billingCycle === 'annual' ? '₹2,000/yr' : '₹5,000', features: ['AI Enabled', 'Analytics dashboard', 'Priority onboarding'], popular: true },
+    { name: 'Professional', students: '1000 Students', duration: billingCycle === 'annual' ? 'Billed Annually' : '2 Years Access', price: billingCycle === 'annual' ? '₹4,000/yr' : '₹10,000', features: ['AI Enabled', 'Advanced analytics', 'Priority support'], popular: false },
+    { name: 'Enterprise', students: 'Unlimited Students', duration: 'Custom Billing', price: 'Custom Pricing', features: ['Dedicated onboarding', 'Custom integrations', 'SLA support'], popular: false },
   ];
 
   const steps = [
@@ -810,7 +815,7 @@ function LandingPage({
     }
 
     return (
-      <div className="space-y-8">
+      <div className="space-y-16">
         <MarketingShellHero
           eyebrow="Multi-tenant SaaS for modern campuses"
           title="Turn your college library into a premium, AI-ready digital platform."
@@ -819,22 +824,28 @@ function LandingPage({
           secondaryAction={<button type="button" onClick={onOpenDemo} className="secondary-btn w-full sm:w-auto">Request Demo</button>}
         />
 
-        <section className="grid gap-6 md:grid-cols-3">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <motion.div key={feature.title} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.4, delay: index * 0.08 }} className="rounded-[32px] border border-white/10 bg-slate-950/70 p-6 shadow-[0_12px_45px_rgba(2,6,23,0.16)]">
-                <div className="mb-4 inline-flex rounded-2xl border border-sky-400/20 bg-sky-400/10 p-3 text-sky-300">
-                  <Icon size={20} />
-                </div>
-                <h3 className="text-lg font-black text-white">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-300">{feature.text}</p>
-              </motion.div>
-            );
-          })}
+        <section id="features" className="space-y-6 scroll-mt-20">
+          <div className="text-center max-w-3xl mx-auto space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Core Features</p>
+            <h3 className="text-3xl font-black text-white">Powerful tools designed for secure academic operations</h3>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <motion.div key={feature.title} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.4, delay: index * 0.08 }} className="rounded-[32px] border border-white/10 bg-slate-950/70 p-6 shadow-[0_12px_45px_rgba(2,6,23,0.16)]">
+                  <div className="mb-4 inline-flex rounded-2xl border border-sky-400/20 bg-sky-400/10 p-3 text-sky-300">
+                    <Icon size={20} />
+                  </div>
+                  <h3 className="text-lg font-black text-white">{feature.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-300">{feature.text}</p>
+                </motion.div>
+              );
+            })}
+          </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section id="about" className="grid gap-8 lg:grid-cols-[1fr_1fr] items-center scroll-mt-20">
           <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8 shadow-[0_15px_50px_rgba(2,6,23,0.18)]">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">How it works</p>
             <h3 className="mt-4 text-3xl font-black text-white">A guided path from registration to daily campus operations.</h3>
@@ -851,37 +862,103 @@ function LandingPage({
             </div>
           </div>
 
-          <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8 shadow-[0_15px_50px_rgba(2,6,23,0.18)]">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Pricing</p>
-            <h3 className="mt-4 text-3xl font-black text-white">Flexible plans that grow with each institution.</h3>
-            <div className="mt-6 grid gap-4 xl:grid-cols-2">
-              {pricingPlans.map((plan) => (
-                <div key={plan.name} className={`rounded-[28px] border p-5 ${plan.popular ? 'border-sky-400/30 bg-sky-400/10' : 'border-white/10 bg-white/5'}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <h4 className="text-lg font-black text-white">{plan.name}</h4>
-                    {plan.popular && <span className="rounded-full bg-sky-400/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-sky-300">Popular</span>}
-                  </div>
-                  <p className="mt-2 text-sm text-slate-300">{plan.students}</p>
-                  <p className="mt-2 text-sm text-slate-300">{plan.duration}</p>
-                  <p className="mt-4 text-3xl font-black text-white">{plan.price}</p>
-                  <ul className="mt-4 space-y-2 text-sm text-slate-300">
-                    {plan.features.map((feature) => <li key={feature} className="flex items-center gap-2"><BadgeCheck size={14} className="text-sky-300" />{feature}</li>)}
-                  </ul>
-                </div>
-              ))}
+          <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8 shadow-[0_15px_50px_rgba(2,6,23,0.18)] space-y-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Platform Isolation</p>
+            <h3 className="text-3xl font-black text-white">Academic data privacy, enforced cryptographically</h3>
+            <p className="text-slate-300 text-base leading-relaxed">
+              Every college registered on CampusLibrary AI receives an isolated data tenant. Access permissions are verified at every layer, ensuring students and administrators can only interact with records belonging to their own institutions.
+            </p>
+            <ul className="space-y-3 text-sm text-slate-300">
+              <li className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-sky-300"></span>
+                Strict multi-tenant token assertions
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-sky-300"></span>
+                Role-based admin, librarian, and student flows
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-sky-300"></span>
+                Isolated AI agent boundaries per college
+              </li>
+            </ul>
+            <div className="pt-4">
+              <button type="button" onClick={onOpenRegister} className="secondary-btn w-full sm:w-auto">Read SaaS Whitepaper</button>
             </div>
           </div>
         </section>
 
-        <section className="rounded-[40px] border border-white/10 bg-slate-950/70 p-8 shadow-[0_15px_50px_rgba(2,6,23,0.18)]">
+        <section id="pricing" className="space-y-8 scroll-mt-20">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <div className="text-center max-w-3xl mx-auto space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Pricing Options</p>
+              <h3 className="text-3xl font-black text-white">Flexible plans that grow with each institution</h3>
+            </div>
+            
+            {/* Billing Cycle Toggle */}
+            <div className="flex items-center gap-3 bg-white/5 rounded-full p-1 border border-white/10">
+              <button
+                type="button"
+                onClick={() => setBillingCycle('biennial')}
+                className={`rounded-full px-5 py-2 text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
+                  billingCycle === 'biennial'
+                    ? 'bg-sky-400 text-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.3)]'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                Biennial (2 Years)
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingCycle('annual')}
+                className={`rounded-full px-5 py-2 text-xs font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 ${
+                  billingCycle === 'annual'
+                    ? 'bg-sky-400 text-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.3)]'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                Annual
+                <span className="bg-emerald-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+                  -20%
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {pricingPlans.map((plan) => (
+              <div key={plan.name} className={`rounded-[28px] border p-5 flex flex-col justify-between ${plan.popular ? 'border-sky-400/30 bg-sky-400/10 shadow-[0_0_30px_rgba(56,189,248,0.05)]' : 'border-white/10 bg-white/5'}`}>
+                <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="text-lg font-black text-white">{plan.name}</h4>
+                    {plan.popular && <span className="rounded-full bg-sky-400/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-sky-300">Popular</span>}
+                  </div>
+                  <p className="mt-2 text-sm text-slate-300 font-semibold">{plan.students}</p>
+                  <p className="mt-1 text-xs text-slate-400">{plan.duration}</p>
+                  <p className="mt-4 text-3xl font-black text-white">{plan.price}</p>
+                </div>
+                <ul className="mt-6 space-y-2 text-sm text-slate-300 border-t border-white/5 pt-4">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-2">
+                      <BadgeCheck size={14} className="text-sky-300 shrink-0" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="testimonials" className="rounded-[40px] border border-white/10 bg-slate-950/70 p-8 shadow-[0_15px_50px_rgba(2,6,23,0.18)] scroll-mt-20">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Testimonials</p>
-              <h3 className="mt-3 text-3xl font-black text-white">Trusted by campus leaders who want a more mature library experience.</h3>
+              <h3 className="mt-3 text-3xl font-black text-white">Trusted by campus leaders who want a more mature library experience</h3>
             </div>
             <button type="button" onClick={onOpenRegister} className="metallic-btn w-full sm:w-auto">Get Started</button>
           </div>
-          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          <div className="mt-8 grid gap-6 lg:grid-cols-3">
             {testimonials.map((testimonial) => (
               <div key={testimonial.name} className="rounded-[28px] border border-white/10 bg-white/5 p-6">
                 <div className="mb-4 flex gap-1 text-sky-300">{Array.from({ length: 5 }).map((_, index) => <Star key={index} size={14} fill="currentColor" />)}</div>
@@ -895,23 +972,39 @@ function LandingPage({
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section id="contact" className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] scroll-mt-20">
           <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">FAQs</p>
-            <div className="mt-6 space-y-3">
-              {faqs.map((faq) => (
-                <details key={faq.question} className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <summary className="cursor-pointer font-semibold text-white">{faq.question}</summary>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-300">{faq.answer}</p>
-                </details>
+            <h3 className="mt-4 text-3xl font-black text-white mb-6">Frequently Asked Questions</h3>
+            <div className="space-y-3">
+              {faqs.map((faq, index) => (
+                <div key={faq.question} className="rounded-[24px] border border-white/10 bg-white/5 p-4 transition-all duration-300">
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
+                    className="w-full flex items-center justify-between text-left font-semibold text-white cursor-pointer group"
+                  >
+                    <span>{faq.question}</span>
+                    <span className="text-sky-300 transition-transform duration-300 shrink-0 ml-3">
+                      {openFaqIndex === index ? <X size={16} /> : <ChevronRight size={16} className="group-hover:translate-x-1" />}
+                    </span>
+                  </button>
+                  {openFaqIndex === index && (
+                    <p className="mt-3 text-sm leading-relaxed text-slate-300 border-t border-white/5 pt-3 animate-fade-in">
+                      {faq.answer}
+                    </p>
+                  )}
+                </div>
               ))}
             </div>
           </div>
-          <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Contact</p>
-            <h3 className="mt-4 text-3xl font-black text-white">Ready to modernize your campus library experience?</h3>
-            <p className="mt-4 text-slate-300">Speak with our team to discuss onboarding, pricing, or a live product walkthrough.</p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="rounded-[36px] border border-white/10 bg-slate-950/70 p-8 flex flex-col justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-300">Contact</p>
+              <h3 className="mt-4 text-3xl font-black text-white">Ready to modernize your campus library experience?</h3>
+              <p className="mt-4 text-slate-300">Speak with our team to discuss onboarding, custom pricing plans, API tunneling, or book a live product demonstration.</p>
+            </div>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row pt-6 border-t border-white/5">
               <button type="button" onClick={onOpenRegister} className="metallic-btn w-full sm:w-auto">Register College</button>
               <button type="button" onClick={onOpenDemo} className="secondary-btn w-full sm:w-auto">Book Demo</button>
             </div>
@@ -1015,6 +1108,618 @@ function LibraryAI({ books }: { books: Book[] }) {
           <Send size={20} />
         </button>
       </form>
+    </div>
+  );
+}
+
+function SuperAdminDashboard({
+  onApprove,
+  onSuspend
+}: {
+  onApprove: (id: string) => void;
+  onSuspend: (id: string) => void;
+}) {
+  const [colleges, setColleges] = useState([
+    { id: '1', name: 'Green Valley College', code: 'GVC4501', status: 'approved', plan: 'Standard', capacity: 500, aiEnabled: true, date: '2026-06-15' },
+    { id: '2', name: 'Omkar Institute', code: 'OMI1284', status: 'pending', plan: 'Starter', capacity: 200, aiEnabled: false, date: '2026-07-02' },
+    { id: '3', name: 'Nirma University', code: 'NIR8842', status: 'approved', plan: 'Professional', capacity: 1000, aiEnabled: true, date: '2026-05-10' },
+    { id: '4', name: 'IIT Bombay Tech', code: 'IITB9941', status: 'suspended', plan: 'Enterprise', capacity: 10000, aiEnabled: true, date: '2026-04-01' }
+  ]);
+
+  const stats = useMemo(() => {
+    return {
+      totalColleges: colleges.length,
+      pendingApprovals: colleges.filter(c => c.status === 'pending').length,
+      activePlans: colleges.filter(c => c.status === 'approved').length,
+      monthlyRevenue: colleges.reduce((sum, c) => {
+        if (c.status !== 'approved') return sum;
+        const rate = c.plan === 'Starter' ? 1000 : c.plan === 'Standard' ? 2500 : c.plan === 'Professional' ? 5000 : 15000;
+        return sum + rate;
+      }, 0)
+    };
+  }, [colleges]);
+
+  const planData = useMemo(() => {
+    return [
+      { name: 'Starter', value: colleges.filter(c => c.plan === 'Starter').length },
+      { name: 'Standard', value: colleges.filter(c => c.plan === 'Standard').length },
+      { name: 'Professional', value: colleges.filter(c => c.plan === 'Professional').length },
+      { name: 'Enterprise', value: colleges.filter(c => c.plan === 'Enterprise').length },
+    ];
+  }, [colleges]);
+
+  const COLORS = ['#38bdf8', '#fbbf24', '#34d399', '#a78bfa'];
+
+  const handleApprove = (id: string) => {
+    setColleges(prev => prev.map(c => c.id === id ? { ...c, status: 'approved' } : c));
+    onApprove(id);
+  };
+
+  const handleSuspend = (id: string) => {
+    setColleges(prev => prev.map(c => c.id === id ? { ...c, status: 'suspended' } : c));
+    onSuspend(id);
+  };
+
+  return (
+    <div className="space-y-8 text-left">
+      {/* Hero */}
+      <div className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-purple-950 p-8 shadow-2xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.35em] text-library-gold">Platform Super-Admin Workspace</p>
+        <h2 className="text-3xl font-serif italic text-white font-bold mt-2">CampusLibrary AI Global Directory</h2>
+        <p className="text-sm text-gray-400 mt-2">Manage multi-tenant colleges, subscription plan allocations, and platform approvals.</p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Total Tenant Colleges', value: stats.totalColleges, color: 'text-sky-400', icon: Library },
+          { label: 'Pending Registrations', value: stats.pendingApprovals, color: 'text-amber-500', icon: Clock },
+          { label: 'Active Subscriptions', value: stats.activePlans, color: 'text-emerald-400', icon: CheckCircle2 },
+          { label: 'Est. Monthly Revenue', value: `₹${stats.monthlyRevenue.toLocaleString()}`, color: 'text-purple-400', icon: Sparkles }
+        ].map((card, idx) => (
+          <div key={idx} className="glass-panel rounded-[32px] border-white/5 p-6 shadow-lg">
+            <div className="flex justify-between items-center mb-4">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 ${card.color}`}>
+                <card.icon size={22} />
+              </div>
+              <span className="text-[8px] font-black tracking-widest bg-white/5 text-gray-400 px-2 py-1 rounded-full">Global</span>
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">{card.label}</p>
+            <p className="text-2xl font-serif italic font-bold text-white mt-2">{card.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Row with List & Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8">
+        {/* Colleges directory */}
+        <div className="glass-panel rounded-[40px] border-white/5 p-8 overflow-x-auto">
+          <h3 className="text-xl font-bold text-white mb-6">Tenant Registrations</h3>
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-white/5 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
+                <th className="py-4 px-2">College Name</th>
+                <th className="py-4">Plan</th>
+                <th className="py-4">Capacity</th>
+                <th className="py-4">Status</th>
+                <th className="py-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {colleges.map(c => (
+                <tr key={c.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                  <td className="py-4 px-2">
+                    <p className="font-semibold text-white">{c.name}</p>
+                    <p className="text-xs text-gray-500 font-mono">{c.code}</p>
+                  </td>
+                  <td className="py-4 text-slate-300 font-semibold">{c.plan}</td>
+                  <td className="py-4 text-slate-400">{c.capacity} Students</td>
+                  <td className="py-4">
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                      c.status === 'approved' ? 'bg-emerald-400/10 text-emerald-400' :
+                      c.status === 'pending' ? 'bg-amber-400/10 text-amber-400' : 'bg-red-400/10 text-red-400'
+                    }`}>
+                      {c.status}
+                    </span>
+                  </td>
+                  <td className="py-4">
+                    <div className="flex gap-2 justify-center">
+                      {c.status === 'pending' && (
+                        <button
+                          onClick={() => handleApprove(c.id)}
+                          className="px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg bg-emerald-400 text-slate-950 hover:bg-emerald-300 cursor-pointer"
+                        >
+                          Approve
+                        </button>
+                      )}
+                      {c.status === 'approved' && (
+                        <button
+                          onClick={() => handleSuspend(c.id)}
+                          className="px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg bg-red-400/10 text-red-400 border border-red-400/20 hover:bg-red-400/20 cursor-pointer"
+                        >
+                          Suspend
+                        </button>
+                      )}
+                      {c.status === 'suspended' && (
+                        <button
+                          onClick={() => handleApprove(c.id)}
+                          className="px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 hover:bg-emerald-400/20 cursor-pointer"
+                        >
+                          Reactivate
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Subscription Plan Distribution Chart */}
+        <div className="glass-panel rounded-[40px] border-white/5 p-8 flex flex-col justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-white mb-2">Subscription Share</h3>
+            <p className="text-xs text-gray-500 mb-6">Volume of onboarded tenants per pricing tier.</p>
+          </div>
+          <div className="h-64 w-full flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={planData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {planData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#0a101f', borderRadius: '12px', border: '1px solid #ffffff10' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs border-t border-white/5 pt-4">
+            {planData.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                <span className="text-slate-300">{item.name}: {item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CollegeAdminDashboard({
+  user
+}: {
+  user: User;
+}) {
+  const [activeSubTab, setActiveSubTab] = useState<'staff' | 'billing'>('staff');
+  
+  // Dynamic subscription states
+  const [currentPlan, setCurrentPlan] = useState<'Starter' | 'Standard' | 'Professional'>('Standard');
+  const [billingLimit, setBillingLimit] = useState(500);
+
+  const [librarians, setLibrarians] = useState([
+    { id: '1', name: 'Dr. Vivek Joshi', email: 'vivek@college.edu', role: 'Chief Librarian', date: '2026-02-10' },
+    { id: '2', name: 'Aparna Sen', email: 'aparna@college.edu', role: 'Catalog Officer', date: '2026-05-18' }
+  ]);
+  
+  const [showAddLibrarian, setShowAddLibrarian] = useState(false);
+  const [newLib, setNewLib] = useState({ name: '', email: '', role: 'Librarian' });
+
+  // Invoice Log state
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const invoices = [
+    { id: 'INV-2026-081', date: '2026-06-15', plan: 'Standard Plan', cycle: 'Biennial Access', amount: '₹5,000', tax: '₹900', total: '₹5,900', status: 'Paid' },
+    { id: 'INV-2024-114', date: '2024-06-15', plan: 'Starter Plan', cycle: 'Biennial Access', amount: '₹2,000', tax: '₹360', total: '₹2,360', status: 'Paid' }
+  ];
+
+  const stats = {
+    studentsLimit: billingLimit,
+    studentsCount: 342,
+    booksCount: 1840,
+    activeIssues: 56,
+    planName: `${currentPlan} Plan`,
+  };
+
+  const activityData = [
+    { name: 'Mon', count: 12 },
+    { name: 'Tue', count: 18 },
+    { name: 'Wed', count: 15 },
+    { name: 'Thu', count: 24 },
+    { name: 'Fri', count: 32 },
+    { name: 'Sat', count: 8 },
+  ];
+
+  const handleAddLibrarian = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newLib.name || !newLib.email) return;
+    setLibrarians(prev => [...prev, { ...newLib, id: Date.now().toString(), date: new Date().toISOString().slice(0, 10) }]);
+    setNewLib({ name: '', email: '', role: 'Librarian' });
+    setShowAddLibrarian(false);
+  };
+
+  const handlePlanChange = (plan: 'Starter' | 'Standard' | 'Professional', limit: number) => {
+    setCurrentPlan(plan);
+    setBillingLimit(limit);
+    alert(`Successfully processed subscription modification! Your college database quota has been updated to the ${plan} Plan (${limit} students max capacity).`);
+  };
+
+  const handleContactSales = () => {
+    alert("Your Enterprise request has been dispatched to CampusLibrary Sales. A representative will contact you at your registered administrator email shortly.");
+  };
+
+  return (
+    <div className="space-y-8 text-left">
+      {/* Hero */}
+      <div className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-sky-950 p-8 shadow-2xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.35em] text-sky-300">College Administration Hub</p>
+        <h2 className="text-3xl font-serif italic text-white font-bold mt-2">Manage library staffing and quota limits</h2>
+        <p className="text-sm text-gray-400 mt-2">Monitor student enrollment count, catalog quotas, and configure access roles.</p>
+      </div>
+
+      {/* Sub-Navigation Tabs */}
+      <div className="flex bg-white/5 rounded-2xl p-1 border border-white/10 max-w-md">
+        <button
+          onClick={() => setActiveSubTab('staff')}
+          className={`flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-widest transition-all cursor-pointer text-center ${
+            activeSubTab === 'staff' ? 'bg-sky-400 text-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          Staff & Traffic
+        </button>
+        <button
+          onClick={() => setActiveSubTab('billing')}
+          className={`flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-widest transition-all cursor-pointer text-center ${
+            activeSubTab === 'billing' ? 'bg-sky-400 text-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          Subscriptions & Invoices
+        </button>
+      </div>
+
+      {/* RENDER STAFF TAB */}
+      {activeSubTab === 'staff' && (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { label: 'Student Limit Usage', value: `${stats.studentsCount} / ${stats.studentsLimit}`, color: 'text-amber-400', icon: Users },
+              { label: 'Books Scoped', value: stats.booksCount, color: 'text-sky-400', icon: Library },
+              { label: 'Active Borrow Records', value: stats.activeIssues, color: 'text-purple-400', icon: Layers },
+              { label: 'Subscription Plan', value: stats.planName, color: 'text-emerald-400', icon: BadgeCheck }
+            ].map((card, idx) => (
+              <div key={idx} className="glass-panel rounded-[32px] border-white/5 p-6 shadow-lg">
+                <div className="flex justify-between items-center mb-4">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 ${card.color}`}>
+                    <card.icon size={22} />
+                  </div>
+                  <span className="text-[8px] font-black tracking-widest bg-white/5 text-gray-400 px-2 py-1 rounded-full">Quota</span>
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">{card.label}</p>
+                <p className="text-2xl font-serif italic font-bold text-white mt-2">{card.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8">
+            {/* Librarian Roster */}
+            <div className="glass-panel rounded-[40px] border-white/5 p-8 overflow-x-auto space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold text-white">Librarian Staff Roster</h3>
+                <button
+                  onClick={() => setShowAddLibrarian(!showAddLibrarian)}
+                  className="metallic-btn px-4 py-2 text-xs font-black cursor-pointer"
+                >
+                  Add Librarian
+                </button>
+              </div>
+
+              {showAddLibrarian && (
+                <form onSubmit={handleAddLibrarian} className="grid gap-4 md:grid-cols-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+                  <input
+                    type="text"
+                    placeholder="Full Name"
+                    value={newLib.name}
+                    onChange={e => setNewLib({ ...newLib, name: e.target.value })}
+                    className="glass-input text-sm p-3 rounded-xl"
+                    required
+                  />
+                  <input
+                    type="email"
+                    placeholder="Staff Email"
+                    value={newLib.email}
+                    onChange={e => setNewLib({ ...newLib, email: e.target.value })}
+                    className="glass-input text-sm p-3 rounded-xl"
+                    required
+                  />
+                  <button type="submit" className="metallic-btn text-xs py-3 rounded-xl cursor-pointer">
+                    Confirm Add
+                  </button>
+                </form>
+              )}
+
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
+                    <th className="py-4 px-2">Staff Member</th>
+                    <th className="py-4">Role</th>
+                    <th className="py-4">Date Joined</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {librarians.map(l => (
+                    <tr key={l.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="py-4 px-2">
+                        <p className="font-semibold text-white">{l.name}</p>
+                        <p className="text-xs text-gray-500 font-mono">{l.email}</p>
+                      </td>
+                      <td className="py-4 text-slate-300 font-semibold">{l.role}</td>
+                      <td className="py-4 text-slate-400">{l.date}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Activity Chart */}
+            <div className="glass-panel rounded-[40px] border-white/5 p-8 flex flex-col justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Check-out Activity</h3>
+                <p className="text-xs text-gray-500 mb-6">Daily circulation traffic this week.</p>
+              </div>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={activityData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#7c8aa2', fontSize: 11 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#7c8aa2', fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#0a101f', borderRadius: '12px', border: '1px solid #ffffff10' }}
+                    />
+                    <Bar dataKey="count" fill="#38bdf8" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* RENDER BILLING TAB */}
+      {activeSubTab === 'billing' && (
+        <div className="space-y-8">
+          
+          {/* Plan Limits Gauge */}
+          <div className="glass-panel rounded-[40px] border-white/5 p-8 space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-white">Plan Quota Consumption</h3>
+                <p className="text-xs text-slate-400 mt-1">Calculated against current subscription boundaries</p>
+              </div>
+              <span className="px-3 py-1 bg-sky-400/20 text-sky-300 border border-sky-400/30 rounded-full text-xs font-black uppercase tracking-wider">
+                {currentPlan} Plan
+              </span>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="w-full bg-white/5 rounded-full h-3 border border-white/10 overflow-hidden">
+                <div 
+                  className="bg-sky-400 h-full rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(56,189,248,0.5)]" 
+                  style={{ width: `${(stats.studentsCount / stats.studentsLimit) * 100}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>{stats.studentsCount} scholar slots active</span>
+                <span>{stats.studentsLimit} slots limit</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing Upgrade/Downgrade Cards Grid */}
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              { name: 'Starter', limit: 200, price: '₹2,000 / biennial', details: 'Basic catalog access. Limit 200 students.' },
+              { name: 'Standard', limit: 500, price: '₹5,000 / biennial', details: 'Gemini AI enabled. Limit 500 students.' },
+              { name: 'Professional', limit: 1000, price: '₹10,000 / biennial', details: 'AI enabled + advanced analytics. Limit 1000 students.' },
+            ].map(plan => (
+              <div 
+                key={plan.name} 
+                className={`rounded-[32px] border p-6 flex flex-col justify-between transition-all ${
+                  currentPlan === plan.name 
+                    ? 'border-sky-400 bg-sky-400/5 shadow-[0_0_20px_rgba(56,189,248,0.1)]' 
+                    : 'border-white/10 bg-white/5 hover:border-white/20'
+                }`}
+              >
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-lg font-bold text-white">{plan.name} Tier</h4>
+                    {currentPlan === plan.name && <span className="bg-sky-400 text-slate-950 px-2 py-0.5 rounded-full text-[9px] font-black uppercase">Active</span>}
+                  </div>
+                  <p className="text-xl font-black text-library-gold font-serif italic">{plan.price}</p>
+                  <p className="text-xs text-slate-400 mt-3 leading-relaxed">{plan.details}</p>
+                </div>
+                
+                <div className="mt-6">
+                  {currentPlan === plan.name ? (
+                    <button disabled className="w-full secondary-btn py-3 text-xs opacity-50 cursor-not-allowed">Active Package</button>
+                  ) : (
+                    <button 
+                      onClick={() => handlePlanChange(plan.name as any, plan.limit)} 
+                      className="w-full metallic-btn py-3 text-xs cursor-pointer"
+                    >
+                      {plan.limit > billingLimit ? 'Upgrade Package' : 'Downgrade Package'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Enterprise CTA & Sales Pitch */}
+          <div className="glass-panel rounded-[40px] border-white/5 p-8 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="space-y-2 max-w-xl">
+              <h3 className="text-xl font-bold text-white">Need higher student capacity?</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Unlock custom limits, dedicated SLAs, API tunneling support, and priority onboarding assistance with our custom Enterprise package.
+              </p>
+            </div>
+            <div className="flex gap-3 w-full md:w-auto shrink-0">
+              <button onClick={handleContactSales} className="metallic-btn px-6 py-3 text-xs font-black cursor-pointer flex-1 md:flex-initial">Contact Sales</button>
+              <button onClick={handleContactSales} className="secondary-btn px-6 py-3 text-xs font-bold cursor-pointer flex-1 md:flex-initial">Request custom demo</button>
+            </div>
+          </div>
+
+          {/* Invoice Logs */}
+          <div className="glass-panel rounded-[40px] border-white/5 p-8 space-y-6 overflow-x-auto">
+            <h3 className="text-lg font-bold text-white">College Billing History</h3>
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-white/5 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
+                  <th className="py-4 px-2">Invoice ID</th>
+                  <th className="py-4">Billing Date</th>
+                  <th className="py-4">Package details</th>
+                  <th className="py-4 text-right">Amount</th>
+                  <th className="py-4 text-center">Status</th>
+                  <th className="py-4 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map(inv => (
+                  <tr key={inv.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="py-4 px-2 font-mono text-xs font-bold text-slate-300">{inv.id}</td>
+                    <td className="py-4 text-slate-400">{inv.date}</td>
+                    <td className="py-4">
+                      <p className="font-semibold text-white">{inv.plan}</p>
+                      <p className="text-[10px] text-slate-500 font-black uppercase">{inv.cycle}</p>
+                    </td>
+                    <td className="py-4 text-right font-semibold text-white">{inv.total}</td>
+                    <td className="py-4 text-center">
+                      <span className="bg-emerald-400/10 text-emerald-400 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+                        {inv.status}
+                      </span>
+                    </td>
+                    <td className="py-4 text-center">
+                      <button 
+                        onClick={() => setSelectedInvoice(inv)}
+                        className="px-3 py-1 text-[10px] font-black uppercase text-sky-400 border border-sky-400/10 bg-sky-400/5 hover:bg-sky-400/20 rounded-lg cursor-pointer transition-all"
+                      >
+                        View Invoice
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Modal Overlay */}
+      <AnimatePresence>
+        {selectedInvoice && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedInvoice(null)}
+              className="absolute inset-0 bg-black/95 backdrop-blur-md"
+            ></motion.div>
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 30 }}
+              className="glass-panel w-full max-w-lg p-8 rounded-[48px] relative z-10 border border-white/20 text-left text-sm text-slate-300 space-y-6"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-start border-b border-white/10 pb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-white">CampusLibrary AI</h3>
+                  <p className="text-[9px] text-gray-500 font-black uppercase mt-1">Multi-Tenant Library Platform</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-mono font-bold text-sky-400">{selectedInvoice.id}</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Date: {selectedInvoice.date}</p>
+                </div>
+              </div>
+
+              {/* Billed To / From */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p className="text-[9px] text-gray-500 font-black uppercase mb-1.5">Billed From</p>
+                  <p className="font-semibold text-white">CampusLibrary SaaS Inc.</p>
+                  <p className="text-slate-400 mt-0.5">Viman Nagar, Pune, India</p>
+                  <p className="text-slate-500">support@campuslibrary.com</p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-gray-500 font-black uppercase mb-1.5">Billed To</p>
+                  <p className="font-semibold text-white">{user.username}</p>
+                  <p className="text-slate-400 mt-0.5">College ID: {user.id}</p>
+                  <p className="text-slate-500">{(user as any).email || 'admin@college.edu'}</p>
+                </div>
+              </div>
+
+              {/* Line Items Table */}
+              <div className="border border-white/5 rounded-2xl overflow-hidden bg-white/5">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/5 text-gray-400 font-bold uppercase text-[9px] tracking-wider bg-white/5">
+                      <th className="py-3 px-4">Item description</th>
+                      <th className="py-3 px-4 text-right">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-white/5 text-slate-300">
+                      <td className="py-3 px-4">
+                        <p className="font-semibold text-white">{selectedInvoice.plan}</p>
+                        <p className="text-[9px] text-slate-500 font-black uppercase">{selectedInvoice.cycle}</p>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-white">{selectedInvoice.amount}</td>
+                    </tr>
+                    <tr className="text-slate-400">
+                      <td className="py-2 px-4 text-right">CGST / SGST (18%)</td>
+                      <td className="py-2 px-4 text-right font-mono">{selectedInvoice.tax}</td>
+                    </tr>
+                    <tr className="border-t border-white/10 text-white bg-white/5 font-bold">
+                      <td className="py-3 px-4 text-right uppercase text-[9px] tracking-wider text-slate-400">Grand Total Paid</td>
+                      <td className="py-3 px-4 text-right font-mono font-black text-library-gold text-sm">{selectedInvoice.total}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-3 pt-3 border-t border-white/10">
+                <button
+                  onClick={() => {
+                    window.print();
+                  }}
+                  className="metallic-btn flex-1 py-4 text-xs font-black cursor-pointer"
+                >
+                  Print / Download Invoice
+                </button>
+                <button
+                  onClick={() => setSelectedInvoice(null)}
+                  className="secondary-btn flex-1 py-4 text-xs font-bold cursor-pointer"
+                >
+                  Close Invoice
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1536,17 +2241,105 @@ function SystemConsole() {
 }
 
 function LoginPage({ onLogin }: { onLogin: (u: string, p: string) => boolean }) {
+  const [authTab, setAuthTab] = useState<'student' | 'admin'>('student');
+  const [authMode, setAuthMode] = useState<'login' | 'forgot' | 'reset'>('login');
+  
+  // Login fields
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  
+  // Forgot password fields
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  
+  // Reset password fields
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  // Errors and messages
+  const [errorMsg, setErrorMsg] = useState('');
+  const [validationError, setValidationError] = useState('');
+
+  const handleLoginSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setValidationError('');
+    setErrorMsg('');
+
+    // Client-side validations
+    if (authTab === 'student') {
+      const prnNum = parseInt(username);
+      if (isNaN(prnNum)) {
+        setValidationError('Student PRN must be a numeric value.');
+        return;
+      }
+      if (prnNum < 12501 || prnNum > 12600) {
+        setValidationError('Student PRN must be between 12501 and 12600.');
+        return;
+      }
+    } else {
+      if (!username.includes('@')) {
+        setValidationError('Please enter a valid email address.');
+        return;
+      }
+    }
+
+    if (password.length < 4) {
+      setValidationError('Password must be at least 4 characters long.');
+      return;
+    }
+
     const success = onLogin(username, password);
     if (!success) {
-      setError(true);
-      setTimeout(() => setError(false), 3000);
+      setErrorMsg('Invalid Credentials. Please check your username and password.');
     }
+  };
+
+  const handleForgotSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setValidationError('');
+    
+    if (!forgotEmail.includes('@')) {
+      setValidationError('Please enter a valid email address.');
+      return;
+    }
+
+    setForgotSuccess(true);
+    setTimeout(() => {
+      setForgotSuccess(false);
+      setAuthMode('reset');
+    }, 2000);
+  };
+
+  const handleResetSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setValidationError('');
+
+    if (resetCode !== '123456') {
+      setValidationError('Invalid verification code. Use mock code: 123456');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setValidationError('New password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setValidationError('Passwords do not match.');
+      return;
+    }
+
+    setResetSuccess(true);
+    setTimeout(() => {
+      setResetSuccess(false);
+      setAuthMode('login');
+      setUsername('');
+      setPassword('');
+    }, 2000);
   };
 
   return (
@@ -1558,81 +2351,279 @@ function LoginPage({ onLogin }: { onLogin: (u: string, p: string) => boolean }) 
       className="w-full max-w-lg"
     >
       <div className="glass-panel relative rounded-[40px] p-8 sm:p-12">
-        <div className="mb-10 sm:mb-12">
-          <h2 className="mb-4 text-3xl font-serif italic text-white sm:text-5xl">Durvesh Library</h2>
-          <p className="text-library-gold font-bold text-lg uppercase tracking-widest">
-            Library Authentication Portal
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-8">
+        
+        {/* Render Forgot Password View */}
+        {authMode === 'forgot' && (
           <div className="space-y-6">
-            {/* Username Field */}
-            <div className="space-y-3">
-              <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                Username / PRN
-              </label>
-              <div className="relative group">
-                <input 
-                  type="text"
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter Username"
-                  className="glass-input w-full pr-16 text-lg font-bold"
-                  autoComplete="username"
-                  required
-                />
-                <UserIcon className="absolute right-5 top-1/2 -translate-y-1/2 text-library-gold z-10" size={20} />
-              </div>
+            <div>
+              <h2 className="mb-2 text-2xl font-serif italic text-white sm:text-4xl">Reset Password</h2>
+              <p className="text-slate-400 text-sm">
+                Enter your registered institutional email to receive a recovery code.
+              </p>
             </div>
 
-            {/* Password Field */}
-            <div className="space-y-3">
-              <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                Password
-              </label>
-              <div className="relative group">
-                <input 
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="glass-input w-full pr-16 text-lg font-bold"
-                  autoComplete="current-password"
-                  required
-                />
-                <ShieldCheck className="absolute right-5 top-1/2 -translate-y-1/2 text-library-gold z-10" size={20} />
+            {forgotSuccess ? (
+              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-center">
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-emerald-400">Code Sent!</p>
+                <p className="mt-2 text-sm text-slate-200">A verification code has been dispatched. Redirecting...</p>
               </div>
-            </div>
-          </div>
+            ) : (
+              <form onSubmit={handleForgotSubmit} className="space-y-6">
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                    College Email Address
+                  </label>
+                  <div className="relative group">
+                    <input 
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="admin@college.edu"
+                      className="glass-input w-full pr-16 text-lg font-bold"
+                      required
+                    />
+                    <Mail className="absolute right-5 top-1/2 -translate-y-1/2 text-library-gold z-10" size={20} />
+                  </div>
+                </div>
 
-          <AnimatePresence>
-            {error && (
-              <motion.p 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="text-red-500 text-xs font-bold uppercase tracking-widest text-center"
-              >
-                Invalid Credentials or PRN Out of Range
-              </motion.p>
+                {validationError && (
+                  <p className="text-red-500 text-xs font-bold uppercase tracking-widest text-center">
+                    {validationError}
+                  </p>
+                )}
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button type="submit" className="metallic-btn flex-1 py-4 text-sm font-black">
+                    Send Code
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setAuthMode('login'); setValidationError(''); }}
+                    className="secondary-btn flex-1 py-4 text-sm font-bold"
+                  >
+                    Back to Login
+                  </button>
+                </div>
+              </form>
             )}
-          </AnimatePresence>
-
-          <button type="submit" className="metallic-btn w-full py-5 text-xl mt-4 group">
-            Access Library
-            <ChevronRight size={26} className="group-hover:translate-x-1.5 transition-transform" />
-          </button>
-
-          <div className="pt-6 text-center">
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
-              Student Range: 12501 to 12600 (Pass = PRN)<br/>
-              Python Full-Stack Core v2.5.0 Deployment
-            </p>
           </div>
-        </form>
+        )}
+
+        {/* Render Reset Password View */}
+        {authMode === 'reset' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="mb-2 text-2xl font-serif italic text-white sm:text-4xl">Enter Verification</h2>
+              <p className="text-slate-400 text-sm">
+                Check your inbox and enter the 6-digit verification code.
+              </p>
+            </div>
+
+            {resetSuccess ? (
+              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-center">
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-emerald-400">Success!</p>
+                <p className="mt-2 text-sm text-slate-200">Password reset successful. Returning to login...</p>
+              </div>
+            ) : (
+              <form onSubmit={handleResetSubmit} className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                      Verification Code (mock: 123456)
+                    </label>
+                    <input 
+                      type="text"
+                      maxLength={6}
+                      value={resetCode}
+                      onChange={(e) => setResetCode(e.target.value)}
+                      placeholder="123456"
+                      className="glass-input w-full text-center text-lg font-mono font-bold tracking-[0.5em]"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                      New Password
+                    </label>
+                    <input 
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="glass-input w-full text-lg font-bold"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                      Confirm New Password
+                    </label>
+                    <input 
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="glass-input w-full text-lg font-bold"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {validationError && (
+                  <p className="text-red-500 text-xs font-bold uppercase tracking-widest text-center">
+                    {validationError}
+                  </p>
+                )}
+
+                <button type="submit" className="metallic-btn w-full py-4 text-sm font-black">
+                  Reset Password
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* Render standard Login View */}
+        {authMode === 'login' && (
+          <>
+            <div className="mb-8">
+              <h2 className="mb-3 text-3xl font-serif italic text-white sm:text-5xl">CampusLibrary AI</h2>
+              <p className="text-library-gold font-bold text-sm uppercase tracking-widest">
+                Authentication Portal
+              </p>
+            </div>
+
+            {/* Portal Tab Selectors */}
+            <div className="flex bg-white/5 rounded-2xl p-1 border border-white/10 mb-8">
+              <button
+                type="button"
+                onClick={() => { setAuthTab('student'); setValidationError(''); setErrorMsg(''); }}
+                className={`flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-widest transition-all cursor-pointer text-center ${
+                  authTab === 'student' ? 'bg-sky-400 text-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                Student Portal
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthTab('admin'); setValidationError(''); setErrorMsg(''); }}
+                className={`flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-widest transition-all cursor-pointer text-center ${
+                  authTab === 'admin' ? 'bg-sky-400 text-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                College Admin
+              </button>
+            </div>
+
+            <form onSubmit={handleLoginSubmit} className="space-y-6">
+              <div className="space-y-5">
+                
+                {/* Dynamic Username Field */}
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                    {authTab === 'student' ? 'Student PRN Number' : 'College Email Address'}
+                  </label>
+                  <div className="relative group">
+                    <input 
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder={authTab === 'student' ? 'Enter PRN (e.g., 12505)' : 'admin@college.edu'}
+                      className="glass-input w-full pr-16 text-lg font-bold"
+                      required
+                    />
+                    <UserIcon className="absolute right-5 top-1/2 -translate-y-1/2 text-library-gold z-10" size={20} />
+                  </div>
+                </div>
+
+                {/* Password Field */}
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                    Password
+                  </label>
+                  <div className="relative group">
+                    <input 
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="glass-input w-full pr-16 text-lg font-bold"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-library-gold hover:text-white transition-colors z-20 cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Utilities */}
+              <div className="flex items-center justify-between text-xs pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-slate-300 select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMe} 
+                    onChange={(e) => setRememberMe(e.target.checked)} 
+                    className="rounded bg-white/5 border-white/10 text-sky-400 focus:ring-sky-400/20"
+                  />
+                  <span>Remember me</span>
+                </label>
+                <button 
+                  type="button" 
+                  onClick={() => { setAuthMode('forgot'); setValidationError(''); setErrorMsg(''); }} 
+                  className="text-sky-300 hover:text-white transition-colors hover:underline cursor-pointer"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+
+              {/* Error messages */}
+              <AnimatePresence>
+                {validationError && (
+                  <motion.p 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-red-500 text-xs font-bold uppercase tracking-widest text-center"
+                  >
+                    {validationError}
+                  </motion.p>
+                )}
+                {errorMsg && (
+                  <motion.p 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-red-500 text-xs font-bold uppercase tracking-widest text-center"
+                  >
+                    {errorMsg}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              <button type="submit" className="metallic-btn w-full py-5 text-xl mt-4 group">
+                Enter System
+                <ChevronRight size={26} className="group-hover:translate-x-1.5 transition-transform" />
+              </button>
+
+              <div className="pt-4 text-center border-t border-white/5">
+                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
+                  {authTab === 'student' ? (
+                    <>Student Range: 12501 to 12600 (Password is the same as PRN)</>
+                  ) : (
+                    <>Admin Demo login: admin / admin</>
+                  )}
+                </p>
+              </div>
+            </form>
+          </>
+        )}
       </div>
     </motion.div>
   );
@@ -1640,199 +2631,737 @@ function LoginPage({ onLogin }: { onLogin: (u: string, p: string) => boolean }) 
 
 function StudentManagementModule({ records }: { records: IssueRecord[] }) {
   const [search, setSearch] = useState('');
+  
+  // Department & Year collections
+  const [departments, setDepartments] = useState(['Computer Science', 'Mechanical', 'Electronics', 'Civil', 'Information Technology']);
+  const [years, setYears] = useState(['FY', 'SY', 'TY']);
+  
   const [deptFilter, setDeptFilter] = useState('All');
   const [yearFilter, setYearFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Clear'>('All');
 
-  const students = useMemo(() => {
-    const departments = ['Computer Science', 'Mechanical', 'Electronics', 'Civil', 'Information Technology'];
-    const years = ['FY', 'SY', 'TY'];
-    const uniquePrns = Array.from(new Set(records.map((record) => record.studentPrn)));
+  // Settings block toggle
+  const [showSettings, setShowSettings] = useState(false);
+  const [newDept, setNewDept] = useState('');
+  const [newYear, setNewYear] = useState('');
 
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
+  // Student roster state (seeded from circulation records)
+  const [studentDatabase, setStudentDatabase] = useState<any[]>(() => {
+    const depts = ['Computer Science', 'Mechanical', 'Electronics', 'Civil', 'Information Technology'];
+    const yrs = ['FY', 'SY', 'TY'];
+    const uniquePrns = Array.from(new Set(records.map(r => r.studentPrn)));
     return uniquePrns.map((prn, index) => {
-      const studentRecords = records.filter((record) => record.studentPrn === prn);
+      const studentRecords = records.filter(r => r.studentPrn === prn);
       const latest = studentRecords[0];
-      const department = departments[index % departments.length];
-      const year = years[index % years.length];
-      const rollNumber = 1000 + index + 1;
-      const phone = `+91 98${(100000000 + index * 12345).toString().slice(1, 9)}`;
-      const email = `${(latest?.studentName || `student${index + 1}`).toLowerCase().replace(/\s+/g, '.')}@college.edu`;
-      const currentBooks = studentRecords.filter((record) => record.status === 'accepted' || record.status === 'return_pending');
-      const borrowHistory = studentRecords.length;
-      const fineAmount = studentRecords.reduce((sum, record) => sum + (record.fineAmount || 0), 0);
-      const status = currentBooks.length > 0 ? 'Active' : 'Clear';
-
       return {
         id: prn,
         name: latest?.studentName || `Student ${index + 1}`,
         prn,
-        department,
-        year,
-        rollNumber,
-        phone,
-        email,
-        currentBooks,
-        borrowHistory,
-        fineAmount,
-        status,
+        department: depts[index % depts.length],
+        year: yrs[index % yrs.length],
+        rollNumber: 1000 + index + 1,
+        phone: `+91 98${(100000000 + index * 12345).toString().slice(1, 9)}`,
+        email: `${(latest?.studentName || `student${index + 1}`).toLowerCase().replace(/\s+/g, '.')}@college.edu`,
+        fineAmount: studentRecords.reduce((sum, r) => sum + (r.fineAmount || 0), 0),
+        borrowHistory: studentRecords.length,
+        currentBooksCount: studentRecords.filter(r => r.status === 'accepted' || r.status === 'return_pending').length,
+        status: studentRecords.filter(r => r.status === 'accepted' || r.status === 'return_pending').length > 0 ? 'Active' : 'Clear'
       };
     });
-  }, [records]);
+  });
 
+  // Client-side filtering
   const filteredStudents = useMemo(() => {
-    return students.filter((student) => {
-      const matchesSearch = [student.name, student.prn, student.department, student.year, student.rollNumber.toString()].some((value) =>
-        value.toString().toLowerCase().includes(search.toLowerCase())
-      );
+    return studentDatabase.filter((student) => {
+      const matchesSearch = [
+        student.name, 
+        student.prn, 
+        student.email, 
+        student.department, 
+        student.year, 
+        student.rollNumber.toString()
+      ].some((value) => value.toString().toLowerCase().includes(search.toLowerCase()));
+
       const matchesDept = deptFilter === 'All' || student.department === deptFilter;
       const matchesYear = yearFilter === 'All' || student.year === yearFilter;
       const matchesStatus = statusFilter === 'All' || student.status === statusFilter;
+      
       return matchesSearch && matchesDept && matchesYear && matchesStatus;
     });
-  }, [students, search, deptFilter, yearFilter, statusFilter]);
+  }, [studentDatabase, search, deptFilter, yearFilter, statusFilter]);
+
+  // Paginated partition
+  const paginatedStudents = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredStudents.slice(start, start + pageSize);
+  }, [filteredStudents, page, pageSize]);
+
+  const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1;
+
+  // Reset page when filter triggers
+  useEffect(() => {
+    setPage(1);
+  }, [search, deptFilter, yearFilter, statusFilter]);
+
+  // Bulk Student Upload handler
+  const handleBulkUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      
+      if (lines.length <= 1) {
+        alert("The uploaded CSV file appears to be empty.");
+        return;
+      }
+
+      const parsedStudents: any[] = [];
+      let skippedCount = 0;
+      let limitExceeded = false;
+
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(',').map(p => p.trim());
+        if (parts.length < 5) continue; 
+
+        const [name, prn, email, dept, year] = parts;
+
+        // Quota Limit Validation (500 limit for Standard Plan)
+        if (studentDatabase.length + parsedStudents.length >= 500) {
+          limitExceeded = true;
+          break;
+        }
+
+        // Email structure validation
+        if (!email.includes('@') || !email.includes('.')) {
+          skippedCount++;
+          continue;
+        }
+
+        // Automatic Password Generation
+        const generatedPassword = `${prn.toLowerCase()}@${Math.floor(100 + Math.random() * 900)}`;
+
+        parsedStudents.push({
+          id: prn,
+          name,
+          prn,
+          department: departments.includes(dept) ? dept : departments[0],
+          year: years.includes(year) ? year : years[0],
+          rollNumber: 2000 + studentDatabase.length + parsedStudents.length + 1,
+          phone: `+91 9100${Math.floor(100000 + Math.random() * 900000)}`,
+          email,
+          fineAmount: 0,
+          borrowHistory: 0,
+          currentBooksCount: 0,
+          status: 'Clear',
+          tempPassword: generatedPassword 
+        });
+      }
+
+      if (parsedStudents.length > 0) {
+        setStudentDatabase(prev => [...prev, ...parsedStudents]);
+        alert(`Successfully imported ${parsedStudents.length} students! Generated passwords automatically. ${skippedCount > 0 ? `(${skippedCount} skipped due to invalid emails)` : ''}`);
+      }
+
+      if (limitExceeded) {
+        alert("SaaS Plan Cap warning: Upload blocked. This action would exceed your Standard Plan limit of 500 students. Please upgrade your subscription plan.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // CSV Exporter
+  const handleExportStudents = () => {
+    const csvContent = [
+      ['Name', 'PRN', 'Email', 'Department', 'Year', 'Roll Number', 'Fines', 'Status'].join(','),
+      ...filteredStudents.map(s => [
+        s.name,
+        s.prn,
+        s.email,
+        s.department,
+        s.year,
+        s.rollNumber,
+        s.fineAmount,
+        s.status
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `student_roster_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleAddDept = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newDept.trim() || departments.includes(newDept.trim())) return;
+    setDepartments(prev => [...prev, newDept.trim()]);
+    setNewDept('');
+  };
+
+  const handleAddYear = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newYear.trim() || years.includes(newYear.trim())) return;
+    setYears(prev => [...prev, newYear.trim()]);
+    setNewYear('');
+  };
+
+  const handleDeleteStudent = (prn: string) => {
+    setStudentDatabase(prev => prev.filter(s => s.prn !== prn));
+  };
 
   const getAvatar = (name: string, color: string) => {
     const initials = name.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase();
-    const svg = `
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
         <rect width="160" height="160" rx="32" fill="${color}" />
         <circle cx="80" cy="64" r="28" fill="rgba(255,255,255,0.25)" />
         <path d="M40 128c8-24 24-34 40-34s32 10 40 34" fill="rgba(255,255,255,0.2)" />
         <text x="80" y="148" text-anchor="middle" font-family="Inter, Arial" font-size="26" font-weight="700" fill="white">${initials}</text>
-      </svg>`;
-    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+      </svg>`)}`;
   };
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 p-8 shadow-2xl shadow-black/20">
+    <div className="space-y-8 text-left">
+      {/* Top Banner */}
+      <div className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 p-8 shadow-2xl">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-library-gold">Student management</p>
-            <h2 className="text-3xl font-serif italic text-white font-bold">A focused view of scholar profiles, activity, and dues.</h2>
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-library-gold">Student Management Suite</p>
+            <h2 className="text-3xl font-serif italic text-white font-bold">Scholar roster and quota administration.</h2>
             <p className="text-sm leading-relaxed text-gray-400">
-              Keep student records organized with profile details, current holds, borrow history, and fine visibility in a responsive workspace.
+              Onboard scholars, perform bulk imports, configure departments, and manage billing limits from one interface.
             </p>
           </div>
           <div className="rounded-full border border-library-gold/20 bg-library-gold/10 px-4 py-2 text-sm font-semibold text-library-gold">
-            {students.length} active student profiles
+            {studentDatabase.length} / 500 Students Enrolled
           </div>
         </div>
       </div>
 
-      <div className="glass-panel rounded-[36px] border-white/5 p-6">
+      {/* Control panel */}
+      <div className="glass-panel rounded-[36px] border-white/5 p-6 space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative w-full lg:max-w-xl">
+          <div className="relative w-full lg:max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name, PRN, roll number..."
+              placeholder="Search name, PRN, email..."
               className="glass-input w-full pl-12 text-sm"
             />
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} className="glass-input text-sm">
-              <option value="All">All departments</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="Mechanical">Mechanical</option>
-              <option value="Electronics">Electronics</option>
-              <option value="Civil">Civil</option>
-              <option value="Information Technology">Information Technology</option>
+          <div className="flex flex-wrap gap-2">
+            <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} className="glass-input text-xs py-2">
+              <option value="All">All Departments</option>
+              {departments.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
-            <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className="glass-input text-sm">
-              <option value="All">All years</option>
-              <option value="FY">FY</option>
-              <option value="SY">SY</option>
-              <option value="TY">TY</option>
+            <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className="glass-input text-xs py-2">
+              <option value="All">All Years</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'All' | 'Active' | 'Clear')} className="glass-input text-sm">
-              <option value="All">All status</option>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'All' | 'Active' | 'Clear')} className="glass-input text-xs py-2">
+              <option value="All">All Status</option>
               <option value="Active">Active</option>
               <option value="Clear">Clear</option>
             </select>
           </div>
         </div>
+
+        {/* Action triggers */}
+        <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-white/5">
+          <div className="flex flex-wrap gap-2">
+            {/* CSV Import */}
+            <label className="rounded-full border border-sky-400/20 bg-sky-400/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-sky-300 flex items-center gap-2 cursor-pointer hover:bg-sky-400/20 transition-all select-none">
+              <Upload size={12} /> Bulk Upload CSV
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleBulkUpload}
+                className="hidden"
+              />
+            </label>
+
+            {/* CSV Export */}
+            <button
+              onClick={handleExportStudents}
+              className="rounded-full border border-library-gold/20 bg-library-gold/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-library-gold cursor-pointer hover:bg-library-gold/20 transition-all"
+            >
+              <span className="flex items-center gap-2"><Download size={12} /> Export CSV</span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="secondary-btn rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.25em] cursor-pointer"
+          >
+            {showSettings ? 'Hide Collections Panel' : 'Manage Depts & Years'}
+          </button>
+        </div>
       </div>
 
+      {/* Settings configuration block */}
+      {showSettings && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="grid gap-6 md:grid-cols-2 bg-slate-950/40 border border-white/10 rounded-[32px] p-6 text-left"
+        >
+          {/* Department setup */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider">Configure Departments</h4>
+            <form onSubmit={handleAddDept} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="E.g., Cybersecurity"
+                value={newDept}
+                onChange={e => setNewDept(e.target.value)}
+                className="glass-input text-xs py-2 flex-1"
+                required
+              />
+              <button type="submit" className="metallic-btn text-xs px-4 py-2 cursor-pointer">Add</button>
+            </form>
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              {departments.map(d => (
+                <div key={d} className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/5 text-xs text-slate-300">
+                  <span>{d}</span>
+                  <button
+                    type="button"
+                    onClick={() => setDepartments(prev => prev.filter(item => item !== d))}
+                    className="text-red-400 hover:text-red-200 font-bold ml-1 cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Academic Years setup */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider">Configure Academic Years</h4>
+            <form onSubmit={handleAddYear} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="E.g., BTech 4th Year"
+                value={newYear}
+                onChange={e => setNewYear(e.target.value)}
+                className="glass-input text-xs py-2 flex-1"
+                required
+              />
+              <button type="submit" className="metallic-btn text-xs px-4 py-2 cursor-pointer">Add</button>
+            </form>
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              {years.map(y => (
+                <div key={y} className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/5 text-xs text-slate-300">
+                  <span>{y}</span>
+                  <button
+                    type="button"
+                    onClick={() => setYears(prev => prev.filter(item => item !== y))}
+                    className="text-red-400 hover:text-red-200 font-bold ml-1 cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Professional Data Table */}
       {filteredStudents.length === 0 ? (
         <div className="glass-panel rounded-[36px] border-white/5 p-12 text-center text-gray-500">
           <UserIcon size={48} className="mx-auto mb-4 text-library-gold" />
           <p className="text-lg font-semibold text-white">No student profiles matched this query.</p>
         </div>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-2">
-          {filteredStudents.map((student, index) => (
-            <motion.div
-              key={student.id}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="glass-panel rounded-[36px] border-white/5 p-6"
-            >
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                <img src={getAvatar(student.name, ['#D4AF37', '#3b82f6', '#8b5cf6', '#10b981'][index % 4])} alt={`${student.name} avatar`} className="h-24 w-24 rounded-[28px] border border-white/10 object-cover shadow-lg" />
-                <div className="flex-1 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-xl font-semibold text-white">{student.name}</h3>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">PRN {student.prn}</p>
-                    </div>
-                    <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] ${student.status === 'Active' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400' : 'border-gray-500/20 bg-gray-500/10 text-gray-400'}`}>
-                      {student.status}
-                    </span>
-                  </div>
+        <div className="space-y-6">
+          <div className="overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/40">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
+                    <th className="py-5 px-6">Scholar details</th>
+                    <th className="py-5 px-4">PRN / Roll</th>
+                    <th className="py-5 px-4">Department</th>
+                    <th className="py-5 px-4">Year</th>
+                    <th className="py-5 px-4 text-right">Fine dues</th>
+                    <th className="py-5 px-4 text-center">Status</th>
+                    <th className="py-5 px-6 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedStudents.map((student, index) => (
+                    <tr key={student.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={getAvatar(student.name, ['#D4AF37', '#3b82f6', '#8b5cf6', '#10b981'][index % 4])}
+                            alt=""
+                            className="h-10 w-10 rounded-xl border border-white/10 shrink-0 object-cover"
+                          />
+                          <div>
+                            <p className="font-semibold text-white">{student.name}</p>
+                            <p className="text-[10px] text-gray-500">{student.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <p className="font-mono text-xs text-slate-300 font-bold">{student.prn}</p>
+                        <p className="text-[9px] text-gray-600">Roll: {student.rollNumber}</p>
+                      </td>
+                      <td className="py-4 px-4 text-slate-300">{student.department}</td>
+                      <td className="py-4 px-4 text-slate-400">{student.year}</td>
+                      <td className="py-4 px-4 text-right font-semibold text-rose-400">
+                        {student.fineAmount > 0 ? `₹${student.fineAmount}` : '—'}
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                          student.status === 'Active' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gray-500/10 text-gray-400'
+                        }`}>
+                          {student.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <button
+                          onClick={() => handleDeleteStudent(student.prn)}
+                          className="px-2 py-1 text-[10px] font-black uppercase text-red-400 border border-red-500/10 bg-red-500/5 hover:bg-red-500/20 rounded-lg cursor-pointer transition-all"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Department</p>
-                      <p className="mt-1 text-sm font-semibold text-white">{student.department}</p>
-                    </div>
-                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Year</p>
-                      <p className="mt-1 text-sm font-semibold text-white">{student.year}</p>
-                    </div>
-                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Roll number</p>
-                      <p className="mt-1 text-sm font-semibold text-white">{student.rollNumber}</p>
-                    </div>
-                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">Fine amount</p>
-                      <p className="mt-1 text-sm font-semibold text-rose-400">₹{student.fineAmount}</p>
-                    </div>
-                  </div>
+          {/* Pagination bar */}
+          <div className="flex items-center justify-between px-2 pt-2 text-xs">
+            <span className="text-gray-500 font-medium">
+              Showing page {page} of {totalPages} ({filteredStudents.length} matches)
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                disabled={page === 1}
+                className="secondary-btn px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={page === totalPages}
+                className="secondary-btn px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-                  <div className="space-y-2 rounded-[24px] border border-white/10 bg-slate-950/50 p-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-300">
-                      <Phone size={14} className="text-library-gold" />
-                      {student.phone}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-300">
-                      <Mail size={14} className="text-library-gold" />
-                      {student.email}
-                    </div>
-                  </div>
+function AuditLogsModule({ records }: { records: IssueRecord[] }) {
+  const [logs, setLogs] = useState<any[]>([
+    { id: 'LOG-9812', event: 'Database catalog entry created for "Machine Learning"', user: 'Librarian Dr. Vivek Joshi', time: '2026-07-04 10:14:02', type: 'Catalog' },
+    { id: 'LOG-9813', event: 'Bulk student roster file upload (24 accounts onboarded)', user: 'Admin Console', time: '2026-07-04 11:22:15', type: 'System' },
+    { id: 'LOG-9814', event: 'Circulation approved: book check-out finalized for PRN 1001', user: 'Librarian Aparna Sen', time: '2026-07-04 11:55:40', type: 'Circulation' },
+    { id: 'LOG-9815', event: 'SaaS Plan modified to Standard Package (500 capacity)', user: 'College Admin', time: '2026-07-04 12:12:00', type: 'Billing' },
+    { id: 'LOG-9816', event: 'Book reservation slot queued for "Core Python"', user: 'AI Dispatcher', time: '2026-07-04 12:28:10', type: 'Circulation' }
+  ]);
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                      <div className="flex items-center gap-2 text-library-gold">
-                        <BookIcon size={16} />
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em]">Borrow history</p>
-                      </div>
-                      <p className="mt-2 text-2xl font-semibold text-white">{student.borrowHistory}</p>
-                    </div>
-                    <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                      <div className="flex items-center gap-2 text-library-gold">
-                        <ShieldCheck size={16} />
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em]">Current books</p>
-                      </div>
-                      <p className="mt-2 text-2xl font-semibold text-white">{student.currentBooks.length}</p>
-                    </div>
-                  </div>
-                </div>
+  const [activeSubTab, setActiveSubTab] = useState<'audit' | 'email'>('audit');
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(5);
+
+  const [emails, setEmails] = useState<any[]>([
+    { id: 'MSG-001', to: 'aparna@college.edu', subject: 'Librarian Credentials Dispatch', time: '2026-07-04 10:00', status: 'Delivered' },
+    { id: 'MSG-002', to: 'student.rahul@college.edu', subject: 'Library Alert: Overdue Item Notice (Fine accrued)', time: '2026-07-04 11:30', status: 'Sent' },
+    { id: 'MSG-003', to: 'student.amit@college.edu', subject: 'Reservation Item Available for Pick-up', time: '2026-07-04 12:00', status: 'Delivered' }
+  ]);
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter(l => {
+      const matchSearch = l.event.toLowerCase().includes(search.toLowerCase()) || 
+                          l.user.toLowerCase().includes(search.toLowerCase()) ||
+                          l.id.toLowerCase().includes(search.toLowerCase());
+      const matchType = typeFilter === 'All' || l.type === typeFilter;
+      return matchSearch && matchType;
+    });
+  }, [logs, search, typeFilter]);
+
+  const paginatedLogs = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredLogs.slice(start, start + pageSize);
+  }, [filteredLogs, page, pageSize]);
+
+  const totalPages = Math.ceil(filteredLogs.length / pageSize) || 1;
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, typeFilter]);
+
+  const handleSimulateAlert = () => {
+    const newAlert = {
+      id: `MSG-${Math.floor(100 + Math.random() * 900)}`,
+      to: `student.${Math.floor(100 + Math.random() * 899)}@college.edu`,
+      subject: 'Dynamic Library Alert: Overdue return fine notice generated',
+      time: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      status: 'Sent'
+    };
+    setEmails(prev => [newAlert, ...prev]);
+    
+    // Simulate real logs creation
+    const newLog = {
+      id: `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
+      event: `Email Notification alert dispatched to: ${newAlert.to}`,
+      user: 'AI Alert Manager',
+      time: newAlert.time,
+      type: 'System'
+    };
+    setLogs(prev => [newLog, ...prev]);
+    alert(`Email Notification simulated successfully! Notification log dispatched to: ${newAlert.to}`);
+  };
+
+  const handleExportCSV = () => {
+    const csvContent = [
+      ['Log ID', 'Activity Event', 'Responsible User', 'Timestamp', 'Category'].join(','),
+      ...filteredLogs.map(l => [l.id, `"${l.event}"`, `"${l.user}"`, l.time, l.type].join(','))
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `system_audit_trail.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.setTextColor(212, 175, 55); 
+    doc.text('CAMPUSLIBRARY AUDIT REPORT', 105, 30, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setTextColor(120);
+    doc.text(`Generated on ${new Date().toLocaleString()} • Multi-Tenant Vault Logs`, 105, 38, { align: 'center' });
+    
+    autoTable(doc, {
+      startY: 48,
+      head: [['Log ID', 'Category', 'Activity Description', 'Actor / Origin', 'Timestamp']],
+      body: filteredLogs.map(l => [l.id, l.type, l.event, l.user, l.time]),
+      theme: 'grid',
+      headStyles: { fillColor: [15, 23, 42] }
+    });
+    
+    doc.save(`audit_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  return (
+    <div className="space-y-8 text-left">
+      {/* Top Banner */}
+      <div className="rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 p-8 shadow-2xl">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-library-gold">Audit Trail & Communications</p>
+            <h2 className="text-3xl font-serif italic text-white font-bold">System log registry and email alerts.</h2>
+            <p className="text-sm leading-relaxed text-gray-400">
+              Audit staff operations, export compliance databases to PDF reports, and monitor student notification queues.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Sub-Navigation tabs */}
+      <div className="flex bg-white/5 rounded-2xl p-1 border border-white/10 max-w-xs">
+        <button
+          onClick={() => setActiveSubTab('audit')}
+          className={`flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-widest transition-all cursor-pointer text-center ${
+            activeSubTab === 'audit' ? 'bg-sky-400 text-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          Audit Logs
+        </button>
+        <button
+          onClick={() => setActiveSubTab('email')}
+          className={`flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-widest transition-all cursor-pointer text-center ${
+            activeSubTab === 'email' ? 'bg-sky-400 text-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.3)]' : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          Email Queue
+        </button>
+      </div>
+
+      {/* AUDIT LOG TAB */}
+      {activeSubTab === 'audit' && (
+        <div className="space-y-6">
+          <div className="glass-panel rounded-[36px] border-white/5 p-6 space-y-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="relative w-full lg:max-w-md">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search events, actors, log ID..."
+                  className="glass-input w-full pl-12 text-sm"
+                />
               </div>
-            </motion.div>
-          ))}
+              <div className="flex gap-2">
+                <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="glass-input text-xs py-2">
+                  <option value="All">All Categories</option>
+                  <option value="Catalog">Catalog</option>
+                  <option value="System">System</option>
+                  <option value="Circulation">Circulation</option>
+                  <option value="Billing">Billing</option>
+                </select>
+
+                <button
+                  onClick={handleExportPDF}
+                  className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-rose-300 hover:bg-rose-400/20 transition-all"
+                >
+                  <span className="flex items-center gap-2"><FileText size={12} /> Export PDF</span>
+                </button>
+
+                <button
+                  onClick={handleExportCSV}
+                  className="rounded-xl border border-library-gold/20 bg-library-gold/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-library-gold hover:bg-library-gold/20 transition-all"
+                >
+                  <span className="flex items-center gap-2"><Download size={12} /> Export CSV</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/40">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 text-gray-400 font-bold uppercase text-[10px] tracking-wider bg-white/5">
+                    <th className="py-5 px-6">Log ID</th>
+                    <th className="py-5 px-4">Event description</th>
+                    <th className="py-5 px-4">Responsible Actor</th>
+                    <th className="py-5 px-4">Category</th>
+                    <th className="py-5 px-6 text-right">Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedLogs.map(l => (
+                    <tr key={l.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="py-4 px-6 font-mono text-xs font-bold text-sky-400">{l.id}</td>
+                      <td className="py-4 px-4 text-white font-semibold">{l.event}</td>
+                      <td className="py-4 px-4 text-slate-300">{l.user}</td>
+                      <td className="py-4 px-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                          l.type === 'Catalog' ? 'bg-amber-400/10 text-amber-400' :
+                          l.type === 'Circulation' ? 'bg-purple-400/10 text-purple-400' :
+                          l.type === 'Billing' ? 'bg-emerald-400/10 text-emerald-400' :
+                          'bg-sky-400/10 text-sky-400'
+                        }`}>
+                          {l.type}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-right text-slate-400 font-mono text-xs">{l.time}</td>
+                    </tr>
+                  ))}
+                  {filteredLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-gray-500">No logs match active filters.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Pagination bar */}
+          <div className="flex items-center justify-between px-2 pt-2 text-xs">
+            <span className="text-gray-500 font-medium">
+              Showing page {page} of {totalPages} ({filteredLogs.length} audit entries)
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                disabled={page === 1}
+                className="secondary-btn px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={page === totalPages}
+                className="secondary-btn px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EMAIL QUEUE TAB */}
+      {activeSubTab === 'email' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center bg-white/5 border border-white/5 rounded-2xl p-6">
+            <div>
+              <h3 className="text-base font-bold text-white">Manual Dispatch Center</h3>
+              <p className="text-xs text-slate-400 mt-1">Simulate overdue notice dispatches to verify system email alerts.</p>
+            </div>
+            <button
+              onClick={handleSimulateAlert}
+              className="metallic-btn px-5 py-3 text-xs font-black cursor-pointer"
+            >
+              Simulate Email Alert
+            </button>
+          </div>
+
+          <div className="overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/40">
+            <table className="min-w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-white/5 text-gray-400 font-bold uppercase text-[10px] tracking-wider bg-white/5">
+                  <th className="py-5 px-6">Notification ID</th>
+                  <th className="py-5 px-4">Recipient</th>
+                  <th className="py-5 px-4">Email Subject</th>
+                  <th className="py-5 px-4 text-center">Status</th>
+                  <th className="py-5 px-6 text-right">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {emails.map(e => (
+                  <tr key={e.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="py-4 px-6 font-mono text-xs font-bold text-slate-300">{e.id}</td>
+                    <td className="py-4 px-4 text-white font-mono text-xs font-bold">{e.to}</td>
+                    <td className="py-4 px-4 text-slate-300">{e.subject}</td>
+                    <td className="py-4 px-4 text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                        e.status === 'Delivered' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-sky-400/10 text-sky-400'
+                      }`}>
+                        {e.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-right text-slate-400 font-mono text-xs">{e.time}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -1843,6 +3372,7 @@ function Dashboard({
   user, 
   records, 
   messages,
+
   onSendMessage,
   onIssue, 
   onAccept, 
@@ -1862,12 +3392,42 @@ function Dashboard({
   onAccept: (id: string) => void,
   onReject: (id: string) => void,
   onReturn: (id: string) => void,
-  activeTab: 'catalog' | 'registry' | 'chat' | 'terminal' | 'stats' | 'return_center' | 'ai_assistant' | 'students',
-  setActiveTab: (t: 'catalog' | 'registry' | 'chat' | 'terminal' | 'stats' | 'return_center' | 'ai_assistant' | 'students') => void,
+  activeTab: string,
+  setActiveTab: (t: any) => void,
   onApproveReturn: (id: string) => void,
   setRegistryFilter: (f: 'all' | 'pending' | 'return_pending') => void,
   registryFilter: 'all' | 'pending' | 'return_pending'
 }) {
+  const tabs = useMemo(() => {
+    if (user.role === 'super_admin') {
+      return [
+        { id: 'super_hub', label: 'Platform Hub', icon: ShieldCheck },
+      ];
+    }
+    if (user.role === 'college_admin') {
+      return [
+        { id: 'college_hub', label: 'College Hub', icon: ShieldCheck },
+        { id: 'students', label: 'Student Mgmt', icon: UserIcon },
+      ];
+    }
+    if (user.role === 'librarian' || user.role === 'admin') {
+      return [
+        { id: 'stats', label: 'Circulation Hub', icon: ShieldCheck },
+        { id: 'catalog', label: 'Book Catalog', icon: BookIcon },
+        { id: 'registry', label: 'Managed Registry', icon: Layers },
+        { id: 'chat', label: 'Support Chat', icon: MessageSquare }
+      ];
+    }
+    return [
+      { id: 'catalog', label: 'Book Catalog', icon: BookIcon },
+      { id: 'terminal', label: 'Issue Books', icon: Library },
+      { id: 'return_center', label: 'Return Center', icon: LogOut },
+      { id: 'registry', label: 'My Bookshelf', icon: Layers },
+      { id: 'ai_assistant', label: 'AI Librarian', icon: Bot },
+      { id: 'chat', label: 'Support Uplink', icon: MessageSquare }
+    ];
+  }, [user]);
+
   const [search, setSearch] = useState('');
   const [directCode, setDirectCode] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -1882,7 +3442,26 @@ function Dashboard({
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<IssueRecord | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [chatInput, setChatInput] = useState('');
+
+  // Book CRUD Form states
+  const [showAddBook, setShowAddBook] = useState(false);
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [bookTitle, setBookTitle] = useState('');
+  const [bookAuthor, setBookAuthor] = useState('');
+  const [bookPublisher, setBookPublisher] = useState('');
+  const [bookCategory, setBookCategory] = useState('');
+  const [bookCopies, setBookCopies] = useState(1);
+  const [bookIsbn, setBookIsbn] = useState('');
+  const [bookDepartment, setBookDepartment] = useState('General');
+
+  useEffect(() => {
+    const permittedIds = tabs.map(t => t.id);
+    if (!permittedIds.includes(activeTab)) {
+      setActiveTab(permittedIds[0]);
+    }
+  }, [user, tabs, activeTab, setActiveTab]);
 
   // AI Recommendation Engine (Mock logic based on categories)
   const recommendations = useMemo(() => {
@@ -2042,6 +3621,59 @@ function Dashboard({
     }
   };
 
+  const handleSaveBook = (e: FormEvent) => {
+    e.preventDefault();
+    if (editingBook) {
+      setCatalogBooks(prev => prev.map(b => b.id === editingBook.id ? {
+        ...b,
+        title: bookTitle,
+        author: bookAuthor,
+        publisher: bookPublisher,
+        category: bookCategory,
+        copies: bookCopies,
+        isbn: bookIsbn,
+        code: bookIsbn || b.code,
+        department: bookDepartment
+      } : b));
+      setEditingBook(null);
+    } else {
+      const newBook: Book = {
+        id: `MNS-${Math.floor(10000 + Math.random() * 90000)}`,
+        code: bookIsbn || `ISBN-${Math.floor(1000000 + Math.random() * 9000000)}`,
+        title: bookTitle,
+        author: bookAuthor,
+        publisher: bookPublisher || 'Academic Press',
+        category: bookCategory || 'General',
+        department: bookDepartment || 'General',
+        copies: bookCopies,
+        section: 'Stack Area A-3'
+      };
+      setCatalogBooks(prev => [newBook, ...prev]);
+      setShowAddBook(false);
+    }
+    setBookTitle('');
+    setBookAuthor('');
+    setBookPublisher('');
+    setBookCategory('');
+    setBookCopies(1);
+    setBookIsbn('');
+    setBookDepartment('General');
+  };
+
+  const handleDeleteSingleBook = (id: string) => {
+    setCatalogBooks(prev => prev.filter(b => b.id !== id));
+    setSelectedBook(null);
+  };
+
+  const handleReserveBook = (book: Book) => {
+    setCatalogBooks(prev => prev.map(b => b.id === book.id ? {
+      ...b,
+      reservedCount: (b.reservedCount || 0) + 1
+    } : b));
+    alert(`Book "${book.title}" successfully reserved! You are #1 in the queue.`);
+    setSelectedBook(null);
+  };
+
   const handleChatSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -2113,16 +3745,7 @@ function Dashboard({
     <div className="w-full max-w-7xl">
       {/* Navigation Tabs */}
       <div className="flex gap-4 mb-10 overflow-x-auto pb-2 px-1">
-        {[
-          { id: 'stats', label: 'Admin Hub', icon: ShieldCheck, show: user.role === 'admin' },
-          { id: 'students', label: 'Student Mgmt', icon: UserIcon, show: user.role === 'admin' },
-          { id: 'ai_assistant', label: 'AI Librarian', icon: Bot, show: user.role === 'student' },
-          { id: 'catalog', label: 'Book Catalog', icon: BookIcon, show: true },
-          { id: 'terminal', label: 'Issue Books', icon: Library, show: user.role === 'student' },
-          { id: 'return_center', label: 'Return Center', icon: LogOut, show: user.role === 'student' },
-          { id: 'registry', label: user.role === 'admin' ? 'Managed Registry' : 'My Bookshelf', icon: Layers, show: true },
-          { id: 'chat', label: 'Support Chat', icon: MessageSquare, show: true }
-        ].filter(t => t.show).map(tab => (
+        {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
@@ -2271,6 +3894,13 @@ function Dashboard({
                       <Send size={18} />
                     </button>
                   </form>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowScanner(true)}
+                    className="w-full rounded-xl border border-sky-400/20 bg-sky-400/10 py-3 text-[10px] font-black uppercase tracking-widest text-sky-300 hover:bg-sky-400/20 transition-all cursor-pointer flex items-center justify-center gap-2 select-none"
+                  >
+                    <MonitorPlay size={12} /> Scan QR / Barcode
+                  </button>
                   <p className="text-[9px] text-gray-500 italic px-1">Note: Find the Book ID in the Library Shell catalog first.</p>
                 </div>
              </motion.div>
@@ -2334,7 +3964,28 @@ function Dashboard({
         {/* Main Workspace Area */}
         <div className="flex-1 min-w-0">
           <AnimatePresence mode="wait">
-            {activeTab === 'catalog' ? (
+            {activeTab === 'super_hub' ? (
+              <motion.div
+                key="super-hub-view"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <SuperAdminDashboard 
+                  onApprove={(id) => console.log('Super-Admin approved college:', id)}
+                  onSuspend={(id) => console.log('Super-Admin suspended college:', id)}
+                />
+              </motion.div>
+            ) : activeTab === 'college_hub' ? (
+              <motion.div
+                key="college-hub-view"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <CollegeAdminDashboard user={user} />
+              </motion.div>
+            ) : activeTab === 'catalog' ? (
               <motion.div 
                 key="catalog-view"
                 initial={{ opacity: 0, y: 20 }}
@@ -2400,6 +4051,24 @@ function Dashboard({
                     >
                       <span className="flex items-center gap-2"><Download size={12} /> Bulk export</span>
                     </button>
+                    {(user.role === 'admin' || user.role === 'college_admin' || user.role === 'librarian') && (
+                      <button
+                        onClick={() => {
+                          setEditingBook(null);
+                          setBookTitle('');
+                          setBookAuthor('');
+                          setBookPublisher('');
+                          setBookCategory('Programming');
+                          setBookCopies(1);
+                          setBookIsbn('');
+                          setBookDepartment('General');
+                          setShowAddBook(true);
+                        }}
+                        className="rounded-full border border-sky-400/20 bg-sky-400/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.25em] text-sky-300 hover:bg-sky-400/20 transition-all cursor-pointer"
+                      >
+                        + Add Book
+                      </button>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <select
@@ -2704,6 +4373,15 @@ function Dashboard({
                 exit={{ opacity: 0, y: -20 }}
               >
                 <StudentManagementModule records={records} />
+              </motion.div>
+            ) : activeTab === 'audit_logs' ? (
+              <motion.div
+                key="audit-logs-view"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <AuditLogsModule records={records} />
               </motion.div>
             ) : activeTab === 'registry' ? (
               <motion.div 
@@ -3041,6 +4719,66 @@ function Dashboard({
         )}
       </AnimatePresence>
 
+      {/* Barcode / QR Code Scanner Simulation Modal */}
+      <AnimatePresence>
+        {showScanner && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowScanner(false)}
+              className="absolute inset-0 bg-black/95 backdrop-blur-md"
+            ></motion.div>
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 30 }}
+              className="glass-panel w-full max-w-md p-8 rounded-[48px] relative z-10 border border-white/20 text-center space-y-6"
+            >
+              <h3 className="text-xl font-bold text-white">Universal Scan Terminal</h3>
+              <p className="text-xs text-slate-400">Position the book barcode or student QR code in the camera frame.</p>
+              
+              {/* Animated viewport */}
+              <div className="relative w-full aspect-video rounded-3xl bg-black border border-white/10 overflow-hidden flex items-center justify-center">
+                {/* Scanner Frame corner lines */}
+                <div className="absolute top-4 left-4 w-6 h-6 border-t-4 border-l-4 border-sky-400 rounded-tl-md"></div>
+                <div className="absolute top-4 right-4 w-6 h-6 border-t-4 border-r-4 border-sky-400 rounded-tr-md"></div>
+                <div className="absolute bottom-4 left-4 w-6 h-6 border-b-4 border-l-4 border-sky-400 rounded-bl-md"></div>
+                <div className="absolute bottom-4 right-4 w-6 h-6 border-b-4 border-r-4 border-sky-400 rounded-br-md"></div>
+                
+                {/* Animated scanning laser line */}
+                <div className="absolute left-0 right-0 h-0.5 bg-sky-400/80 animate-bounce shadow-[0_0_15px_rgba(56,189,248,1)]"></div>
+                
+                <p className="text-[10px] font-black uppercase tracking-widest text-sky-400 animate-pulse">Camera Link Active</p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = catalogBooks[Math.floor(Math.random() * catalogBooks.length)];
+                    setSelectedBook(target);
+                    setShowScanner(false);
+                    alert(`Barcode Scanned successfully! Located item: ${target.title} (${target.id})`);
+                  }}
+                  className="metallic-btn flex-1 py-4 text-xs font-black"
+                >
+                  Simulate QR Scan Success
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowScanner(false)}
+                  className="secondary-btn flex-1 py-4 text-xs font-bold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Confirmation Modal */}
       <AnimatePresence>
         {selectedBook && (
@@ -3062,7 +4800,7 @@ function Dashboard({
                 <div className="w-24 h-24 bg-library-gold/10 rounded-[32px] mx-auto flex items-center justify-center mb-6">
                   <BookIcon className="text-library-gold" size={48} />
                 </div>
-                <h3 className="text-3xl font-serif italic mb-3 text-white">Manual Issue Request</h3>
+                <h3 className="text-3xl font-serif italic mb-3 text-white">Book Information</h3>
                 <p className="text-gray-400 font-medium tracking-tight">Authenticating manuscript ownership</p>
               </div>
 
@@ -3093,51 +4831,272 @@ function Dashboard({
                     </div>
                   )}
 
-                  <div className="bg-white/5 p-6 rounded-3xl border border-white/10">
-                    <div className="flex justify-between items-start mb-4">
+                  <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-left space-y-4">
+                    <div className="flex justify-between items-start">
                       <div>
                         <p className="text-[10px] font-black text-library-gold uppercase tracking-[0.2em] mb-1">{selectedBook.id} / {selectedBook.code}</p>
                         <h4 className="text-xl font-bold text-white tracking-tight">{selectedBook.title}</h4>
+                        <p className="text-xs text-slate-400">By {selectedBook.author}</p>
                       </div>
                       <span className="px-3 py-1 bg-library-gold/20 text-library-gold text-[9px] font-black rounded-lg uppercase">{selectedBook.department}</span>
                     </div>
+
                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
                       <div>
-                        <p className="text-[9px] text-gray-500 font-black uppercase">Shelf Location</p>
-                        <p className="text-sm text-white font-bold">{selectedBook.section}</p>
+                        <p className="text-[9px] text-gray-500 font-black uppercase">Publisher</p>
+                        <p className="text-xs text-white font-semibold">{selectedBook.publisher || 'Academic Press'}</p>
                       </div>
                       <div>
                         <p className="text-[9px] text-gray-500 font-black uppercase">Category</p>
-                        <p className="text-sm text-white font-bold">{selectedBook.category}</p>
+                        <p className="text-xs text-white font-semibold">{selectedBook.category}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-4 border-t border-white/5 text-center">
+                      <div className="bg-white/5 p-2 rounded-xl">
+                        <p className="text-[8px] text-gray-500 font-black uppercase">Stock</p>
+                        <p className="text-sm text-white font-bold">{selectedBook.copies}</p>
+                      </div>
+                      <div className="bg-white/5 p-2 rounded-xl">
+                        <p className="text-[8px] text-gray-500 font-black uppercase">Reserved</p>
+                        <p className="text-sm text-amber-400 font-bold">{selectedBook.reservedCount || 0}</p>
+                      </div>
+                      <div className="bg-white/5 p-2 rounded-xl">
+                        <p className="text-[8px] text-gray-500 font-black uppercase">Available</p>
+                        <p className="text-sm text-emerald-400 font-bold">
+                          {Math.max(0, selectedBook.copies - (selectedBook.reservedCount || 0))}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* QR Code Resource Tagging */}
+                    <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 flex items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-gray-500 font-black uppercase">Asset QR Code</p>
+                        <p className="text-[10px] text-slate-400 font-bold leading-relaxed">
+                          Scan with the library terminal scanner to issue or check stock status.
+                        </p>
+                      </div>
+                      <div className="w-16 h-16 shrink-0 bg-white p-1 rounded-xl flex items-center justify-center">
+                        <svg className="w-full h-full text-slate-950" viewBox="0 0 100 100">
+                          <rect x="5" y="5" width="25" height="25" fill="currentColor" />
+                          <rect x="8" y="8" width="19" height="19" fill="white" />
+                          <rect x="12" y="12" width="11" height="11" fill="currentColor" />
+                          
+                          <rect x="70" y="5" width="25" height="25" fill="currentColor" />
+                          <rect x="73" y="8" width="19" height="19" fill="white" />
+                          <rect x="77" y="12" width="11" height="11" fill="currentColor" />
+                          
+                          <rect x="5" y="70" width="25" height="25" fill="currentColor" />
+                          <rect x="8" y="73" width="19" height="19" fill="white" />
+                          <rect x="12" y="77" width="11" height="11" fill="currentColor" />
+                          
+                          <rect x="35" y="10" width="6" height="15" fill="currentColor" />
+                          <rect x="45" y="5" width="10" height="6" fill="currentColor" />
+                          <rect x="40" y="25" width="15" height="6" fill="currentColor" />
+                          
+                          <rect x="10" y="35" width="15" height="6" fill="currentColor" />
+                          <rect x="5" y="45" width="6" height="15" fill="currentColor" />
+                          
+                          <rect x="75" y="35" width="15" height="6" fill="currentColor" />
+                          <rect x="85" y="45" width="10" height="10" fill="currentColor" />
+                          
+                          <rect x="35" y="40" width="20" height="20" fill="currentColor" />
+                          <rect x="40" y="45" width="10" height="10" fill="white" />
+                          
+                          <rect x="65" y="65" width="10" height="25" fill="currentColor" />
+                          <rect x="80" y="80" width="15" height="15" fill="currentColor" />
+                        </svg>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-4">
-                    <button onClick={() => setSelectedBook(null)} className="secondary-btn flex-1 py-5">
-                      {activeTab === 'terminal' ? 'Abort' : 'Close Details'}
-                    </button>
-                    {activeTab === 'terminal' ? (
-                      <button onClick={handleIssueRequest} className="metallic-btn flex-1 py-5">
-                        Confirm Issue
+                  {/* Actions Grid */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-3">
+                      <button onClick={() => setSelectedBook(null)} className="secondary-btn flex-1 py-4 text-xs font-bold">
+                        {activeTab === 'terminal' ? 'Abort' : 'Close'}
                       </button>
-                    ) : (
-                      user.role !== 'admin' && (
-                        <button 
-                          onClick={() => {
-                            setActiveTab('terminal');
-                            setDirectCode(selectedBook.id);
-                            setSelectedBook(null);
-                          }} 
-                          className="metallic-btn flex-1 py-5"
-                        >
-                          Request this Item
+
+                      {activeTab === 'terminal' && (
+                        <button onClick={handleIssueRequest} className="metallic-btn flex-1 py-4 text-xs font-black">
+                          Confirm Issue
                         </button>
-                      )
+                      )}
+
+                      {activeTab !== 'terminal' && user.role === 'student' && (
+                        Math.max(0, selectedBook.copies - (selectedBook.reservedCount || 0)) > 0 ? (
+                          <button 
+                            onClick={() => {
+                              setActiveTab('terminal');
+                              setDirectCode(selectedBook.id);
+                              setSelectedBook(null);
+                            }} 
+                            className="metallic-btn flex-1 py-4 text-xs font-black"
+                          >
+                            Request Issue
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleReserveBook(selectedBook)} 
+                            className="metallic-btn flex-1 py-4 text-xs font-black bg-amber-500/20 text-amber-300 border-amber-500/30"
+                          >
+                            Reserve Book
+                          </button>
+                        )
+                      )}
+                    </div>
+
+                    {(user.role === 'admin' || user.role === 'college_admin' || user.role === 'librarian') && (
+                      <div className="flex gap-2 border-t border-white/5 pt-3">
+                        <button
+                          onClick={() => {
+                            setEditingBook(selectedBook);
+                            setBookTitle(selectedBook.title);
+                            setBookAuthor(selectedBook.author);
+                            setBookPublisher(selectedBook.publisher || 'Academic Press');
+                            setBookCategory(selectedBook.category);
+                            setBookCopies(selectedBook.copies);
+                            setBookIsbn(selectedBook.code);
+                            setBookDepartment(selectedBook.department);
+                            setSelectedBook(null);
+                          }}
+                          className="secondary-btn flex-1 py-2 text-[10px] font-black text-sky-400 border-sky-400/20"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSingleBook(selectedBook.id)}
+                          className="secondary-btn flex-1 py-2 text-[10px] font-black text-red-400 border-red-500/20"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Add / Edit Book Modal Drawer */}
+      <AnimatePresence>
+        {(showAddBook || editingBook) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowAddBook(false); setEditingBook(null); }}
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            ></motion.div>
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 30 }}
+              className="glass-panel w-full max-w-lg p-8 rounded-[48px] relative z-10 border border-white/20"
+            >
+              <h3 className="text-2xl font-serif italic text-white mb-6 text-left">
+                {editingBook ? 'Modify Catalog Entry' : 'New Catalog Accession'}
+              </h3>
+              
+              <form onSubmit={handleSaveBook} className="space-y-4 text-left">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Title</label>
+                  <input 
+                    type="text" 
+                    value={bookTitle} 
+                    onChange={e => setBookTitle(e.target.value)} 
+                    className="glass-input w-full p-3 rounded-xl text-sm" 
+                    required 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Author</label>
+                    <input 
+                      type="text" 
+                      value={bookAuthor} 
+                      onChange={e => setBookAuthor(e.target.value)} 
+                      className="glass-input w-full p-3 rounded-xl text-sm" 
+                      required 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Publisher</label>
+                    <input 
+                      type="text" 
+                      value={bookPublisher} 
+                      onChange={e => setBookPublisher(e.target.value)} 
+                      className="glass-input w-full p-3 rounded-xl text-sm" 
+                      required 
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</label>
+                    <input 
+                      type="text" 
+                      value={bookCategory} 
+                      onChange={e => setBookCategory(e.target.value)} 
+                      className="glass-input w-full p-3 rounded-xl text-sm" 
+                      required 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ISBN Code</label>
+                    <input 
+                      type="text" 
+                      value={bookIsbn} 
+                      onChange={e => setBookIsbn(e.target.value)} 
+                      className="glass-input w-full p-3 rounded-xl text-sm" 
+                      required 
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Copies</label>
+                    <input 
+                      type="number" 
+                      min={0}
+                      value={bookCopies} 
+                      onChange={e => setBookCopies(Number(e.target.value))} 
+                      className="glass-input w-full p-3 rounded-xl text-sm" 
+                      required 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Department</label>
+                    <input 
+                      type="text" 
+                      value={bookDepartment} 
+                      onChange={e => setBookDepartment(e.target.value)} 
+                      className="glass-input w-full p-3 rounded-xl text-sm" 
+                      required 
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    type="submit" 
+                    className="metallic-btn flex-1 py-4 text-xs font-black"
+                  >
+                    Save Entry
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowAddBook(false); setEditingBook(null); }}
+                    className="secondary-btn flex-1 py-4 text-xs font-bold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
